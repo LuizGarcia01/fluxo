@@ -1,0 +1,6 @@
+{
+  "buildCommand": "bun run build:vercel",
+  "installCommand": "bun install",
+  "outputDirectory": ".vercel/output",
+  "framework": null
+}

@@ -1,5 +1,9 @@
 # Env — credenciais nunca vão pro git
 .env
+
+# Vercel build output (gerado em CI)
+.vercel/output
+.vercel-entry-tmp.js
 .env.local
 .env.*.local
 
