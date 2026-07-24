@@ -20,6 +20,7 @@ const categorySchema = z.object({
   type: z.enum(["income", "expense"]),
   expense_kind: z.enum(["fixed", "variable"]).nullable().optional(),
   color: z.string().optional(),
+  icon: z.string().nullable().optional(),
 });
 
 const transactionSchema = z.object({
@@ -85,6 +86,7 @@ export const createCategory = createServerFn({ method: "POST" })
         type: data.type,
         expense_kind,
         color: data.color,
+        icon: data.icon ?? null,
       })
       .select()
       .single();
@@ -101,6 +103,7 @@ export const updateCategory = createServerFn({ method: "POST" })
       name: z.string().min(1),
       type: z.enum(["income", "expense"]),
       expense_kind: z.enum(["fixed", "variable"]).nullable().optional(),
+      icon: z.string().nullable().optional(),
     }).parse(input),
   )
   .handler(async ({ data, context }): Promise<Category> => {
@@ -108,7 +111,7 @@ export const updateCategory = createServerFn({ method: "POST" })
       data.type === "expense" ? (data.expense_kind ?? "variable") : null;
     const { data: category, error } = await context.supabase
       .from("categories")
-      .update({ name: data.name, type: data.type, expense_kind })
+      .update({ name: data.name, type: data.type, expense_kind, icon: data.icon ?? null })
       .eq("id", data.id)
       .eq("user_id", context.userId)
       .select()

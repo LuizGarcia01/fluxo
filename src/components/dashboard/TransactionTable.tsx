@@ -123,7 +123,8 @@ export function TransactionTable({
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-1.5">
                         {t.category ? (
-                          <span className="px-2.5 py-0.5 bg-surface text-muted-foreground rounded-full text-[11px] font-medium border border-border/50">
+                          <span className="px-2.5 py-0.5 bg-surface text-muted-foreground rounded-full text-[11px] font-medium border border-border/50 flex items-center gap-1">
+                            {t.category.icon && <span className="text-sm leading-none">{t.category.icon}</span>}
                             {t.category.name}
                           </span>
                         ) : (

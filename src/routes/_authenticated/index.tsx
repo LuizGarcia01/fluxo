@@ -231,7 +231,7 @@ function DashboardPage() {
     }
   };
 
-  const handleAddCategory = async (data: { name: string; type: TransactionType; expense_kind: ExpenseKind | null }) => {
+  const handleAddCategory = async (data: { name: string; type: TransactionType; expense_kind: ExpenseKind | null; icon: string | null }) => {
     try {
       await createCategory({ data });
       queryClient.invalidateQueries({ queryKey: ["categories"] });
@@ -242,7 +242,7 @@ function DashboardPage() {
     }
   };
 
-  const handleUpdateCategory = async (data: { id: string; name: string; type: TransactionType; expense_kind: ExpenseKind | null }) => {
+  const handleUpdateCategory = async (data: { id: string; name: string; type: TransactionType; expense_kind: ExpenseKind | null; icon: string | null }) => {
     try {
       await updateCategory({ data });
       queryClient.invalidateQueries({ queryKey: ["categories"] });

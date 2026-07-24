@@ -1,15 +1,14 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Tag, X, Pencil, Trash2, Check } from "lucide-react";
 import type { Category, TransactionType, ExpenseKind } from "@/lib/budget.types";
 
 interface CategoryManagerProps {
   categories: Category[];
-  onAdd: (data: { name: string; type: TransactionType; expense_kind: ExpenseKind | null }) => void;
-  onUpdate: (data: { id: string; name: string; type: TransactionType; expense_kind: ExpenseKind | null }) => Promise<void> | void;
+  onAdd: (data: { name: string; type: TransactionType; expense_kind: ExpenseKind | null; icon: string | null }) => void;
+  onUpdate: (data: { id: string; name: string; type: TransactionType; expense_kind: ExpenseKind | null; icon: string | null }) => Promise<void> | void;
   onDelete: (id: string) => Promise<void> | void;
 }
 
-// Single unified classification: one pick covers both `type` and `expense_kind`.
 type CategoryClass = "income" | "fixed" | "variable";
 
 const CLASS_OPTIONS: { value: CategoryClass; label: string; hint: string }[] = [
@@ -18,11 +17,25 @@ const CLASS_OPTIONS: { value: CategoryClass; label: string; hint: string }[] = [
   { value: "variable", label: "Despesa variável", hint: "Mercado, lazer, transporte" },
 ];
 
+// Emojis organized by context — shows relevant set based on selected type
+const EMOJI_BY_CLASS: Record<CategoryClass, string[]> = {
+  income: ["💰", "💵", "💳", "💼", "📊", "📈", "💹", "🏦", "🎁", "🏆", "💲", "🤑", "📑", "🏧"],
+  fixed: ["🏠", "🏡", "🔑", "🔌", "💡", "📱", "🌐", "📺", "🚿", "⚡", "🔥", "🛡️", "🏋️", "🎓"],
+  variable: [
+    "🛒", "🍕", "🍔", "🍽️", "☕", "🥗", "🍺", "🧃",
+    "🚗", "⛽", "✈️", "🚌", "🚇", "🛵",
+    "💊", "🏥", "🧘", "🦷", "👓",
+    "🎬", "🎮", "🎵", "📚", "🎯", "🎭",
+    "👕", "👗", "👟", "💄", "🛍️",
+    "🐕", "🐈", "🌿", "📦", "🎀",
+  ],
+};
+
 function toClass(cat: Pick<Category, "type" | "expense_kind">): CategoryClass | null {
   if (cat.type === "income") return "income";
   if (cat.expense_kind === "fixed") return "fixed";
   if (cat.expense_kind === "variable") return "variable";
-  return null; // legacy unclassified expense
+  return null;
 }
 
 function fromClass(c: CategoryClass): { type: TransactionType; expense_kind: ExpenseKind | null } {
@@ -40,20 +53,67 @@ function classBadge(c: CategoryClass | null) {
   return <span className="px-2 py-[2px] rounded-md text-[10px] font-semibold bg-surface text-muted-foreground/70">Sem classe</span>;
 }
 
+function EmojiPicker({
+  value,
+  onChange,
+  klass,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  klass: CategoryClass;
+}) {
+  const emojis = EMOJI_BY_CLASS[klass];
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-bold uppercase tracking-widest text-brand/40">Ícone</label>
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="text-[10px] text-brand/40 hover:text-brand/70"
+          >
+            Remover
+          </button>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {emojis.map((emoji) => (
+          <button
+            key={emoji}
+            type="button"
+            onClick={() => onChange(emoji === value ? "" : emoji)}
+            className={`size-8 rounded-lg text-lg flex items-center justify-center transition-all ${
+              value === emoji
+                ? "bg-brand/15 ring-2 ring-brand/40 scale-110"
+                : "bg-surface hover:bg-brand/5 hover:scale-110"
+            }`}
+          >
+            {emoji}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function CategoryManager({ categories, onAdd, onUpdate, onDelete }: CategoryManagerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState("");
   const [klass, setKlass] = useState<CategoryClass>("variable");
+  const [icon, setIcon] = useState("");
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editKlass, setEditKlass] = useState<CategoryClass>("variable");
+  const [editIcon, setEditIcon] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    onAdd({ name: name.trim(), ...fromClass(klass) });
+    onAdd({ name: name.trim(), icon: icon || null, ...fromClass(klass) });
     setName("");
+    setIcon("");
     setKlass("variable");
   };
 
@@ -61,16 +121,18 @@ export function CategoryManager({ categories, onAdd, onUpdate, onDelete }: Categ
     setEditingId(cat.id);
     setEditName(cat.name);
     setEditKlass(toClass(cat) ?? "variable");
+    setEditIcon(cat.icon ?? "");
   };
 
   const cancelEdit = () => {
     setEditingId(null);
     setEditName("");
+    setEditIcon("");
   };
 
   const saveEdit = async (id: string) => {
     if (!editName.trim()) return;
-    await onUpdate({ id, name: editName.trim(), ...fromClass(editKlass) });
+    await onUpdate({ id, name: editName.trim(), icon: editIcon || null, ...fromClass(editKlass) });
     cancelEdit();
   };
 
@@ -100,7 +162,7 @@ export function CategoryManager({ categories, onAdd, onUpdate, onDelete }: Categ
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand/20 backdrop-blur-sm"
           onClick={(e) => e.currentTarget === e.target && setIsOpen(false)}
         >
-          <div className="w-full max-w-md bg-white rounded-3xl border border-brand/5 shadow-xl p-6 space-y-6">
+          <div className="w-full max-w-md bg-white rounded-3xl border border-brand/5 shadow-xl p-6 space-y-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-heading font-bold">Gerenciar Categorias</h2>
               <button onClick={() => setIsOpen(false)} aria-label="Fechar" className="p-2 text-brand/40 hover:text-brand">
@@ -111,13 +173,18 @@ export function CategoryManager({ categories, onAdd, onUpdate, onDelete }: Categ
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-widest text-brand/40">Nova categoria</label>
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  className="w-full rounded-xl border border-brand/10 bg-surface px-4 py-2.5 text-sm outline-none focus:border-brand/30 focus:ring-2 focus:ring-brand/10"
-                  placeholder="Ex: Aluguel, Mercado, Salário…"
-                />
+                <div className="flex items-center gap-2">
+                  {icon && (
+                    <span className="text-2xl leading-none shrink-0">{icon}</span>
+                  )}
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="flex-1 rounded-xl border border-brand/10 bg-surface px-4 py-2.5 text-sm outline-none focus:border-brand/30 focus:ring-2 focus:ring-brand/10"
+                    placeholder="Ex: Aluguel, Mercado, Salário…"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -127,7 +194,7 @@ export function CategoryManager({ categories, onAdd, onUpdate, onDelete }: Categ
                     <button
                       key={opt.value}
                       type="button"
-                      onClick={() => setKlass(opt.value)}
+                      onClick={() => { setKlass(opt.value); setIcon(""); }}
                       className={`flex items-center justify-between px-3 py-2.5 rounded-xl border text-left transition-colors ${
                         klass === opt.value
                           ? "border-brand/40 bg-brand/5"
@@ -144,6 +211,8 @@ export function CategoryManager({ categories, onAdd, onUpdate, onDelete }: Categ
                 </div>
               </div>
 
+              <EmojiPicker value={icon} onChange={setIcon} klass={klass} />
+
               <button
                 type="submit"
                 className="w-full rounded-xl bg-brand py-3 text-sm font-bold text-primary-foreground hover:opacity-90 transition-opacity"
@@ -152,7 +221,7 @@ export function CategoryManager({ categories, onAdd, onUpdate, onDelete }: Categ
               </button>
             </form>
 
-            <div className="space-y-3 max-h-72 overflow-y-auto">
+            <div className="space-y-3">
               <p className="text-xs font-bold uppercase tracking-widest text-brand/40">Suas categorias</p>
               {categories.length === 0 && (
                 <p className="text-sm text-brand/40">Nenhuma categoria cadastrada.</p>
@@ -172,8 +241,11 @@ export function CategoryManager({ categories, onAdd, onUpdate, onDelete }: Categ
                     {list.map((cat) => (
                       <div key={cat.id} className="px-3 py-2 bg-surface rounded-xl">
                         {editingId === cat.id ? (
-                          <div className="space-y-2">
+                          <div className="space-y-3">
                             <div className="flex items-center gap-2">
+                              {editIcon && (
+                                <span className="text-xl leading-none shrink-0">{editIcon}</span>
+                              )}
                               <input
                                 value={editName}
                                 onChange={(e) => setEditName(e.target.value)}
@@ -189,16 +261,20 @@ export function CategoryManager({ categories, onAdd, onUpdate, onDelete }: Categ
                             </div>
                             <select
                               value={editKlass}
-                              onChange={(e) => setEditKlass(e.target.value as CategoryClass)}
+                              onChange={(e) => { setEditKlass(e.target.value as CategoryClass); setEditIcon(""); }}
                               className="w-full rounded-lg border border-brand/10 bg-white px-2 py-1.5 text-xs"
                             >
                               {CLASS_OPTIONS.map((opt) => (
                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
                               ))}
                             </select>
+                            <EmojiPicker value={editIcon} onChange={setEditIcon} klass={editKlass} />
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
+                            {cat.icon && (
+                              <span className="text-lg leading-none shrink-0">{cat.icon}</span>
+                            )}
                             <span className="flex-1 text-sm font-medium truncate">{cat.name}</span>
                             {classBadge(toClass(cat))}
                             <button
@@ -229,4 +305,3 @@ export function CategoryManager({ categories, onAdd, onUpdate, onDelete }: Categ
     </>
   );
 }
-

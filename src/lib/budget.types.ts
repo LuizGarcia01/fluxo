@@ -9,6 +9,7 @@ export interface Category {
   type: TransactionType;
   expense_kind: ExpenseKind | null; // null only for income categories
   color: string | null;
+  icon: string | null;
   created_at: string;
 }
 
