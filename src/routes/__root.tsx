@@ -75,19 +75,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Fluxo — Orçamento Pessoal" },
+      { title: "Nexo — Orçamento Pessoal" },
       { name: "description", content: "Controle suas finanças pessoais de forma simples e elegante." },
-      { property: "og:title", content: "Fluxo — Orçamento Pessoal" },
+      { property: "og:title", content: "Nexo — Orçamento Pessoal" },
       { property: "og:description", content: "Controle suas finanças pessoais de forma simples e elegante." },
       { property: "og:type", content: "website" },
       // PWA meta tags
-      { name: "theme-color", content: "#7ab4ad" },
+      { name: "theme-color", content: "#6ec6ba" },
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
-      { name: "apple-mobile-web-app-title", content: "Fluxo" },
-      { name: "application-name", content: "Fluxo" },
-      { name: "msapplication-TileColor", content: "#7ab4ad" },
+      { name: "apple-mobile-web-app-title", content: "Nexo" },
+      { name: "application-name", content: "Nexo" },
+      { name: "msapplication-TileColor", content: "#6ec6ba" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -128,7 +128,7 @@ function RootComponent() {
   const router = useRouter();
 
   useEffect(() => {
-    const saved = localStorage.getItem("fluxo-theme");
+    const saved = localStorage.getItem("nexo-theme") ?? localStorage.getItem("fluxo-theme");
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     if (saved === "dark" || (!saved && prefersDark)) {
       document.documentElement.classList.add("dark");

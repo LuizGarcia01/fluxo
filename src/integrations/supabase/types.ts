@@ -14,11 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      bill_templates: {
+        Row: {
+          amount: number
+          category_id: string | null
+          created_at: string | null
+          due_day: number
+          id: string
+          is_active: boolean
+          name: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category_id?: string | null
+          created_at?: string | null
+          due_day: number
+          id?: string
+          is_active?: boolean
+          name: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string | null
+          due_day?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_templates_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           color: string | null
           created_at: string
           expense_kind: Database["public"]["Enums"]["expense_kind"] | null
+          icon: string | null
           id: string
           name: string
           type: Database["public"]["Enums"]["transaction_type"]
@@ -28,6 +70,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           expense_kind?: Database["public"]["Enums"]["expense_kind"] | null
+          icon?: string | null
           id?: string
           name: string
           type: Database["public"]["Enums"]["transaction_type"]
@@ -37,6 +80,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           expense_kind?: Database["public"]["Enums"]["expense_kind"] | null
+          icon?: string | null
           id?: string
           name?: string
           type?: Database["public"]["Enums"]["transaction_type"]
@@ -125,6 +169,7 @@ export type Database = {
       transactions: {
         Row: {
           amount: number
+          bill_id: string | null
           category_id: string | null
           created_at: string
           date: string
@@ -135,6 +180,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          bill_id?: string | null
           category_id?: string | null
           created_at?: string
           date: string
@@ -145,6 +191,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          bill_id?: string | null
           category_id?: string | null
           created_at?: string
           date?: string
@@ -154,6 +201,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "transactions_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "bill_templates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transactions_category_id_fkey"
             columns: ["category_id"]

@@ -6,8 +6,8 @@ export const Route = createFileRoute("/auth")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Entrar — Fluxo" },
-      { name: "description", content: "Entre na sua conta do Fluxo." },
+      { title: "Entrar — Nexo" },
+      { name: "description", content: "Entre na sua conta do Nexo." },
     ],
   }),
   component: AuthPage,
@@ -64,7 +64,7 @@ function AuthPage() {
       <div
         className="hidden lg:flex lg:w-[45%] flex-col justify-between p-12 relative overflow-hidden"
         style={{
-          background: "linear-gradient(145deg, #7ab4ad 0%, #3d8a84 50%, #005452 100%)",
+          background: "linear-gradient(145deg, #6ec6ba 0%, #3eaaa0 50%, #1d8880 100%)",
         }}
       >
         {/* Mesh glow blobs */}
@@ -100,7 +100,7 @@ function AuthPage() {
             >
               <span className="text-white text-sm font-semibold">₢</span>
             </div>
-            <span className="text-white font-heading font-semibold text-xl tracking-tight">Fluxo</span>
+            <span className="text-white font-heading font-semibold text-xl tracking-tight">nexo</span>
           </div>
           <div className="space-y-5">
             <h2 className="text-[2.6rem] font-heading font-semibold text-white leading-[1.12] tracking-tight">
@@ -142,7 +142,7 @@ function AuthPage() {
             <div className="size-8 bg-brand rounded-xl flex items-center justify-center shadow-sm shadow-brand/30">
               <span className="text-white text-xs font-semibold">₢</span>
             </div>
-            <span className="font-heading font-semibold text-base tracking-tight">Fluxo</span>
+            <span className="font-heading font-semibold text-base tracking-tight">nexo</span>
           </div>
 
           <div className="mb-8">

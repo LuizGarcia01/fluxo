@@ -14,6 +14,9 @@ interface AddTransactionDialogProps {
   }) => Promise<void>;
   editingTransaction?: Transaction | null;
   onClose?: () => void;
+  /** Controlled open state — when provided the internal button trigger is hidden */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function AddTransactionDialog({
@@ -22,9 +25,16 @@ export function AddTransactionDialog({
   onSubmit,
   editingTransaction,
   onClose,
+  open: controlledOpen,
+  onOpenChange,
 }: AddTransactionDialogProps) {
   const isEdit = !!editingTransaction;
-  const [isOpen, setIsOpen] = useState(isEdit);
+  const [internalOpen, setInternalOpen] = useState(isEdit);
+  const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setIsOpen = (v: boolean) => {
+    setInternalOpen(v);
+    onOpenChange?.(v);
+  };
   const [loading, setLoading] = useState(false);
 
   const defaultDate = `${currentDate.year}-${String(currentDate.month).padStart(2, "0")}-${new Date().getDate().toString().padStart(2, "0")}`;
@@ -77,7 +87,7 @@ export function AddTransactionDialog({
 
   return (
     <>
-      {!isEdit && (
+      {!isEdit && controlledOpen === undefined && (
         <button
           onClick={() => setIsOpen(true)}
           className="bg-brand text-primary-foreground px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition-all flex items-center gap-2 shadow-sm shadow-brand/30"
