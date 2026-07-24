@@ -85,8 +85,8 @@ function EmojiPicker({
             onClick={() => onChange(emoji === value ? "" : emoji)}
             className={`size-8 rounded-lg text-lg flex items-center justify-center transition-all ${
               value === emoji
-                ? "bg-brand/15 ring-2 ring-brand/40 scale-110"
-                : "bg-surface hover:bg-brand/5 hover:scale-110"
+                ? "bg-brand/15 ring-2 ring-brand/40 scale-110 opacity-100"
+                : "bg-surface hover:bg-brand/5 hover:scale-110 opacity-40 hover:opacity-75"
             }`}
           >
             {emoji}
@@ -175,7 +175,7 @@ export function CategoryManager({ categories, onAdd, onUpdate, onDelete }: Categ
                 <label className="text-xs font-bold uppercase tracking-widest text-brand/40">Nova categoria</label>
                 <div className="flex items-center gap-2">
                   {icon && (
-                    <span className="text-2xl leading-none shrink-0">{icon}</span>
+                    <span className="text-2xl leading-none shrink-0 opacity-60">{icon}</span>
                   )}
                   <input
                     value={name}
@@ -244,7 +244,7 @@ export function CategoryManager({ categories, onAdd, onUpdate, onDelete }: Categ
                           <div className="space-y-3">
                             <div className="flex items-center gap-2">
                               {editIcon && (
-                                <span className="text-xl leading-none shrink-0">{editIcon}</span>
+                                <span className="text-xl leading-none shrink-0 opacity-60">{editIcon}</span>
                               )}
                               <input
                                 value={editName}
@@ -273,7 +273,7 @@ export function CategoryManager({ categories, onAdd, onUpdate, onDelete }: Categ
                         ) : (
                           <div className="flex items-center gap-2">
                             {cat.icon && (
-                              <span className="text-lg leading-none shrink-0">{cat.icon}</span>
+                              <span className="text-lg leading-none shrink-0 opacity-50">{cat.icon}</span>
                             )}
                             <span className="flex-1 text-sm font-medium truncate">{cat.name}</span>
                             {classBadge(toClass(cat))}
