@@ -11,6 +11,8 @@ import type {
   InvestmentContribution,
   InvestmentSummary,
   InvestmentType,
+  BillTemplate,
+  BillWithStatus,
 } from "./budget.types";
 
 const categorySchema = z.object({
@@ -433,6 +435,147 @@ export const deleteContribution = createServerFn({ method: "POST" })
     const { error } = await context.supabase
       .from("investment_contributions").delete()
       .eq("id", data.id).eq("user_id", context.userId);
+    if (error) throw error;
+  });
+
+/* ============================ BILL TEMPLATES ============================ */
+
+const billSchema = z.object({
+  name: z.string().min(1),
+  amount: z.coerce.number().positive(),
+  category_id: z.string().uuid().nullable(),
+  due_day: z.coerce.number().min(1).max(31),
+});
+
+export const getBills = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => periodSchema.parse(input))
+  .handler(async ({ data, context }): Promise<BillWithStatus[]> => {
+    const { startDate, endDate } = getMonthDateRange(data.year, data.month);
+    const today = new Date();
+    const isCurrentMonth =
+      today.getFullYear() === data.year && today.getMonth() + 1 === data.month;
+    const todayDay = today.getDate();
+
+    const [billsRes, paidRes] = await Promise.all([
+      context.supabase
+        .from("bill_templates")
+        .select("*, category:categories(*)")
+        .eq("user_id", context.userId)
+        .eq("is_active", true)
+        .order("due_day", { ascending: true }),
+      context.supabase
+        .from("transactions")
+        .select("id, bill_id")
+        .not("bill_id", "is", null)
+        .gte("date", startDate)
+        .lte("date", endDate),
+    ]);
+    if (billsRes.error) throw billsRes.error;
+    if (paidRes.error) throw paidRes.error;
+
+    const paidMap = new Map<string, string>();
+    for (const tx of paidRes.data ?? []) {
+      if (tx.bill_id) paidMap.set(tx.bill_id, tx.id);
+    }
+
+    return (billsRes.data ?? []).map((bill) => {
+      const paid_transaction_id = paidMap.get(bill.id) ?? null;
+      const is_overdue =
+        isCurrentMonth && !paid_transaction_id && bill.due_day < todayDay;
+      return { ...bill, paid_transaction_id, is_overdue };
+    }) as unknown as BillWithStatus[];
+  });
+
+export const createBill = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => billSchema.parse(input))
+  .handler(async ({ data, context }): Promise<BillTemplate> => {
+    const { data: row, error } = await context.supabase
+      .from("bill_templates")
+      .insert({ user_id: context.userId, ...data })
+      .select("*, category:categories(*)")
+      .single();
+    if (error) throw error;
+    return row as unknown as BillTemplate;
+  });
+
+export const updateBill = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ id: z.string().uuid(), ...billSchema.shape }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<BillTemplate> => {
+    const { id, ...rest } = data;
+    const { data: row, error } = await context.supabase
+      .from("bill_templates")
+      .update(rest)
+      .eq("id", id)
+      .eq("user_id", context.userId)
+      .select("*, category:categories(*)")
+      .single();
+    if (error) throw error;
+    return row as unknown as BillTemplate;
+  });
+
+export const deleteBill = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }): Promise<void> => {
+    const { error } = await context.supabase
+      .from("bill_templates")
+      .delete()
+      .eq("id", data.id)
+      .eq("user_id", context.userId);
+    if (error) throw error;
+  });
+
+export const payBill = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      bill_id: z.string().uuid(),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<Transaction> => {
+    const { data: bill, error: billErr } = await context.supabase
+      .from("bill_templates")
+      .select("*")
+      .eq("id", data.bill_id)
+      .eq("user_id", context.userId)
+      .single();
+    if (billErr) throw billErr;
+    if (!bill) throw new Error("Conta não encontrada");
+
+    const { data: tx, error } = await context.supabase
+      .from("transactions")
+      .insert({
+        user_id: context.userId,
+        type: "expense",
+        category_id: bill.category_id,
+        amount: bill.amount,
+        description: bill.name,
+        date: data.date,
+        bill_id: data.bill_id,
+      })
+      .select("*, category:categories(*)")
+      .single();
+    if (error) throw error;
+    return tx as unknown as Transaction;
+  });
+
+export const unpayBill = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ transaction_id: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<void> => {
+    const { error } = await context.supabase
+      .from("transactions")
+      .delete()
+      .eq("id", data.transaction_id)
+      .eq("user_id", context.userId);
     if (error) throw error;
   });
 

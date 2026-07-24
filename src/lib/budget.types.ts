@@ -20,6 +20,7 @@ export interface Transaction {
   amount: number;
   description: string;
   date: string;
+  bill_id: string | null;
   created_at: string;
   category?: Category | null;
 }
@@ -65,4 +66,21 @@ export interface InvestmentSummary {
   monthContributions: number; // net (aportes - retiradas) do mês
   savingsRate: number; // % da renda do mês investida
   allocation: { type: InvestmentType; amount: number; percentage: number }[];
+}
+
+export interface BillTemplate {
+  id: string;
+  user_id: string;
+  name: string;
+  amount: number;
+  category_id: string | null;
+  due_day: number;
+  is_active: boolean;
+  created_at: string;
+  category?: Category | null;
+}
+
+export interface BillWithStatus extends BillTemplate {
+  paid_transaction_id: string | null;
+  is_overdue: boolean;
 }

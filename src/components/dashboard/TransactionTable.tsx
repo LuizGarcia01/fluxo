@@ -136,6 +136,9 @@ export function TransactionTable({
                             ? <span className="px-1.5 py-0.5 rounded-md text-[9px] font-semibold uppercase tracking-wider bg-brand/8 text-brand">Fixa</span>
                             : <span className="px-1.5 py-0.5 rounded-md text-[9px] font-semibold uppercase tracking-wider bg-expense/8 text-expense">Var.</span>
                         )}
+                        {t.bill_id && (
+                          <span className="px-1.5 py-0.5 rounded-md text-[9px] font-semibold uppercase tracking-wider bg-income/10 text-income">Conta</span>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3.5 text-sm text-muted-foreground tabular-nums">{fmtDate(t.date)}</td>

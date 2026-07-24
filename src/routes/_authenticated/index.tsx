@@ -10,6 +10,7 @@ import { Charts } from "@/components/dashboard/Charts";
 import { AddTransactionDialog } from "@/components/dashboard/AddTransactionDialog";
 import { CategoryManager } from "@/components/dashboard/CategoryManager";
 import { InvestmentManager } from "@/components/dashboard/InvestmentManager";
+import { BillsSection } from "@/components/dashboard/BillsSection";
 
 import {
   getCategories,
@@ -31,6 +32,12 @@ import {
   deleteInvestment,
   createContribution,
   deleteContribution,
+  getBills,
+  createBill,
+  updateBill,
+  deleteBill,
+  payBill,
+  unpayBill,
 } from "@/lib/budget.functions";
 import type { Transaction, TransactionType, ExpenseKind, InvestmentType } from "@/lib/budget.types";
 
@@ -85,6 +92,11 @@ function DashboardPage() {
     queryFn: () => getInvestmentSummary({ data: { year: currentDate.year, month: currentDate.month } }),
   });
 
+  const billsQuery = useQuery({
+    queryKey: ["bills", currentDate.year, currentDate.month],
+    queryFn: () => getBills({ data: { year: currentDate.year, month: currentDate.month } }),
+  });
+
   const isPending =
     categoriesQuery.isPending ||
     transactionsQuery.isPending ||
@@ -93,7 +105,8 @@ function DashboardPage() {
     spendingQuery.isPending ||
     investmentsQuery.isPending ||
     contributionsQuery.isPending ||
-    invSummaryQuery.isPending;
+    invSummaryQuery.isPending ||
+    billsQuery.isPending;
 
   const isError =
     categoriesQuery.isError ||
@@ -103,7 +116,8 @@ function DashboardPage() {
     spendingQuery.isError ||
     investmentsQuery.isError ||
     contributionsQuery.isError ||
-    invSummaryQuery.isError;
+    invSummaryQuery.isError ||
+    billsQuery.isError;
 
   const invalidateMonth = () => {
     queryClient.invalidateQueries({ queryKey: ["transactions", currentDate.year, currentDate.month] });
@@ -112,6 +126,63 @@ function DashboardPage() {
     queryClient.invalidateQueries({ queryKey: ["spending", currentDate.year, currentDate.month] });
     queryClient.invalidateQueries({ queryKey: ["invSummary", currentDate.year, currentDate.month] });
     queryClient.invalidateQueries({ queryKey: ["contributions", currentDate.year, currentDate.month] });
+    queryClient.invalidateQueries({ queryKey: ["bills", currentDate.year, currentDate.month] });
+  };
+
+  const handleAddBill = async (data: {
+    name: string;
+    amount: number;
+    category_id: string | null;
+    due_day: number;
+  }) => {
+    try {
+      await createBill({ data });
+      invalidateMonth();
+    } catch {
+      throw new Error("failed");
+    }
+  };
+
+  const handleUpdateBill = async (data: {
+    id: string;
+    name: string;
+    amount: number;
+    category_id: string | null;
+    due_day: number;
+  }) => {
+    try {
+      await updateBill({ data });
+      invalidateMonth();
+    } catch {
+      throw new Error("failed");
+    }
+  };
+
+  const handleDeleteBill = async (id: string) => {
+    try {
+      await deleteBill({ data: { id } });
+      invalidateMonth();
+    } catch {
+      // ignore
+    }
+  };
+
+  const handlePayBill = async (bill_id: string, date: string) => {
+    try {
+      await payBill({ data: { bill_id, date } });
+      invalidateMonth();
+    } catch {
+      throw new Error("failed");
+    }
+  };
+
+  const handleUnpayBill = async (transaction_id: string) => {
+    try {
+      await unpayBill({ data: { transaction_id } });
+      invalidateMonth();
+    } catch {
+      // ignore
+    }
   };
 
   const handleAddTransaction = async (data: {
@@ -305,6 +376,7 @@ function DashboardPage() {
   const investments = investmentsQuery.data ?? [];
   const contributions = contributionsQuery.data ?? [];
   const invSummary = invSummaryQuery.data ?? { totalPatrimony: 0, monthContributions: 0, savingsRate: 0, allocation: [] };
+  const bills = billsQuery.data ?? [];
 
   return (
     <div className="min-h-screen bg-background py-6 px-4 sm:px-6 lg:px-8">
@@ -326,6 +398,17 @@ function DashboardPage() {
             onDelete={handleDeleteCategory}
           />
         </div>
+
+        <BillsSection
+          bills={bills}
+          categories={categories}
+          currentDate={currentDate}
+          onAdd={handleAddBill}
+          onUpdate={handleUpdateBill}
+          onDelete={handleDeleteBill}
+          onPay={handlePayBill}
+          onUnpay={handleUnpayBill}
+        />
 
         {/* Edit dialog — mounts when editingTransaction is set */}
         {editingTransaction && (
