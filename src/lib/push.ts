@@ -19,12 +19,23 @@ export async function requestPushPermission(): Promise<boolean> {
 
 export async function subscribeToPush(): Promise<boolean> {
   try {
+    if (!VAPID_PUBLIC_KEY) {
+      console.error("[push] VITE_VAPID_PUBLIC_KEY não está definida no build");
+      return false;
+    }
+
     const granted = await requestPushPermission();
-    if (!granted) return false;
+    if (!granted) {
+      console.warn("[push] Permissão negada");
+      return false;
+    }
 
     const registration = await navigator.serviceWorker.ready;
+    console.log("[push] Service worker pronto:", registration.scope);
+
     const existing = await registration.pushManager.getSubscription();
     if (existing) {
+      console.log("[push] Subscrição já existente, a reutilizar");
       await savePushSubscription(existing);
       return true;
     }
@@ -34,9 +45,11 @@ export async function subscribeToPush(): Promise<boolean> {
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as unknown as ArrayBuffer,
     });
 
+    console.log("[push] Nova subscrição criada:", subscription.endpoint.slice(0, 50));
     await savePushSubscription(subscription);
     return true;
-  } catch {
+  } catch (err) {
+    console.error("[push] Erro ao subscrever:", err);
     return false;
   }
 }
