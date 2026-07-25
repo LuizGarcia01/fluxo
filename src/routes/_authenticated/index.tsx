@@ -11,6 +11,7 @@ import { AddTransactionDialog } from "@/components/dashboard/AddTransactionDialo
 import { CategoryManager } from "@/components/dashboard/CategoryManager";
 import { InvestmentManager } from "@/components/dashboard/InvestmentManager";
 import { BillsSection } from "@/components/dashboard/BillsSection";
+import { NotificationSettings } from "@/components/dashboard/NotificationSettings";
 import { AgendaView } from "@/components/dashboard/AgendaView";
 
 import {
@@ -491,6 +492,11 @@ function DashboardPage() {
                   onUpdate={handleUpdateCategory}
                   onDelete={handleDeleteCategory}
                 />
+              </div>
+
+              {/* Notificações */}
+              <div className="bg-card rounded-2xl border border-border p-5 card-shadow">
+                <NotificationSettings />
               </div>
 
               {/* Account */}

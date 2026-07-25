@@ -2,6 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { runBillNotifications } from "./lib/notifications.server";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -44,9 +45,31 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+async function handleCronRoute(request: Request): Promise<Response | null> {
+  const url = new URL(request.url);
+  if (url.pathname !== "/api/notify-bills") return null;
+
+  const cronSecret = process.env.CRON_SECRET;
+  const auth = request.headers.get("authorization");
+  if (!cronSecret || auth !== `Bearer ${cronSecret}`) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  try {
+    const result = await runBillNotifications();
+    return Response.json(result);
+  } catch (error) {
+    console.error("[cron] notify-bills error:", error);
+    return Response.json({ error: String(error) }, { status: 500 });
+  }
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const cronResponse = await handleCronRoute(request);
+      if (cronResponse) return cronResponse;
+
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);

@@ -14,8 +14,11 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
       registerType: "autoUpdate",
-      devOptions: { enabled: true },
+      devOptions: { enabled: true, type: "module" },
       includeAssets: ["favicon.ico", "icon.svg", "apple-touch-icon-180x180.png"],
       manifest: {
         name: "Nexo — Orçamento Pessoal",
