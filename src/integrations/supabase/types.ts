@@ -246,6 +246,7 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          currency: string | null
           notify_days_before: number | null
           notify_push: boolean | null
           notify_whatsapp: boolean | null
@@ -254,6 +255,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          currency?: string | null
           notify_days_before?: number | null
           notify_push?: boolean | null
           notify_whatsapp?: boolean | null
@@ -262,6 +264,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          currency?: string | null
           notify_days_before?: number | null
           notify_push?: boolean | null
           notify_whatsapp?: boolean | null

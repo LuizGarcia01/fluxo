@@ -2,7 +2,7 @@ import webpush from "web-push";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
-export function setupVapid() {
+function setupVapid() {
   webpush.setVapidDetails(
     process.env.VAPID_SUBJECT!,
     process.env.VAPID_PUBLIC_KEY!,
@@ -10,14 +10,14 @@ export function setupVapid() {
   );
 }
 
-export function adminSupabase() {
+function adminSupabase() {
   return createClient<Database>(
     process.env.SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
 }
 
-export async function sendPushNotification(
+async function sendPushNotification(
   endpoint: string,
   p256dh: string,
   auth: string,
@@ -29,7 +29,7 @@ export async function sendPushNotification(
   );
 }
 
-export async function sendWhatsApp(phone: string, billName: string, amount: number): Promise<void> {
+async function sendWhatsApp(phone: string, billName: string, amount: number): Promise<void> {
   const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID!;
   const token = process.env.WHATSAPP_ACCESS_TOKEN!;
   const to = phone.replace(/\s+/g, "").replace(/^00/, "+");

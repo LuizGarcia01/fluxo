@@ -15,7 +15,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       strategies: "injectManifest",
-      srcDir: "src",
+      srcDir: "public",
       filename: "sw.js",
       registerType: "autoUpdate",
       devOptions: { enabled: true, type: "module" },

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Home, CalendarDays, TrendingUp, Settings, Moon, Sun, LogOut, ChevronDown, Plus, ChevronLeft, ChevronRight, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Home, CalendarDays, TrendingUp, Settings, Moon, Sun, LogOut, Plus, ChevronLeft, ChevronRight, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 import { NexoLogo, NexoMark } from "@/components/dashboard/NexoLogo";
 import { CurrencyProvider, useCurrency } from "@/contexts/CurrencyContext";
