@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Bell, BellOff, MessageCircle, Phone, Check, Loader2, Coins } from "lucide-react";
+import { Bell, BellOff, MessageCircle, Phone, Check, Loader2, Coins, Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeToPush, unsubscribeFromPush, getPushStatus } from "@/lib/push";
 import { toast } from "sonner";
 import { CURRENCIES, type CurrencyCode, useCurrency } from "@/contexts/CurrencyContext";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 
 interface Settings {
   phone: string;
@@ -27,6 +28,7 @@ export function NotificationSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { setCurrency } = useCurrency();
+  const { canInstall, isInstalled, install } = usePWAInstall();
 
   useEffect(() => {
     loadSettings();
@@ -228,6 +230,34 @@ export function NotificationSettings() {
           ))}
         </div>
       </div>
+
+      {/* Instalar app */}
+      {(canInstall || isInstalled) && (
+        <div className="bg-surface rounded-2xl border border-border p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`size-9 rounded-xl flex items-center justify-center ${isInstalled ? "bg-brand/10" : "bg-muted/40"}`}>
+                <Smartphone className={`size-4 ${isInstalled ? "text-brand" : "text-muted-foreground"}`} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold">Instalar Aplicação</p>
+                <p className="text-xs text-muted-foreground">
+                  {isInstalled ? "Já instalada no ecrã inicial" : "Adiciona ao ecrã inicial do telemóvel"}
+                </p>
+              </div>
+            </div>
+            {!isInstalled && (
+              <button
+                onClick={install}
+                className="rounded-xl bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 transition-opacity"
+              >
+                Instalar
+              </button>
+            )}
+            {isInstalled && <Check className="size-4 text-brand" />}
+          </div>
+        </div>
+      )}
 
       {/* Guardar */}
       <button
