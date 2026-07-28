@@ -138,6 +138,15 @@ function RootComponent() {
   }, []);
 
   useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/sw.js", { scope: "/" })
+        .then((reg) => console.log("[SW] Registado:", reg.scope))
+        .catch((err) => console.error("[SW] Falhou:", err));
+    }
+  }, []);
+
+  useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
