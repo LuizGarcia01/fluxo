@@ -45,8 +45,17 @@ export async function sendWhatsApp(phone: string, billName: string, amount: numb
       to,
       type: "template",
       template: {
-        name: process.env.WHATSAPP_TEMPLATE_NAME ?? "hello_world",
-        language: { code: process.env.WHATSAPP_TEMPLATE_LANG ?? "en_US" },
+        name: process.env.WHATSAPP_TEMPLATE_NAME ?? "mensagenspagamento",
+        language: { code: process.env.WHATSAPP_TEMPLATE_LANG ?? "pt_PT" },
+        components: [
+          {
+            type: "body",
+            parameters: [
+              { type: "text", text: billName },
+              { type: "text", text: amount.toFixed(2) },
+            ],
+          },
+        ],
       },
     }),
   });
