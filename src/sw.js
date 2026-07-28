@@ -1,8 +1,5 @@
-/// <reference lib="webworker" />
 import { cleanupOutdatedCaches, precacheAndRoute } from "workbox-precaching";
 import { clientsClaim } from "workbox-core";
-
-declare const self: ServiceWorkerGlobalScope;
 
 self.skipWaiting();
 clientsClaim();
@@ -11,14 +8,7 @@ precacheAndRoute(self.__WB_MANIFEST);
 
 self.addEventListener("push", (event) => {
   if (!event.data) return;
-
-  const data = event.data.json() as {
-    title: string;
-    body: string;
-    url?: string;
-    icon?: string;
-  };
-
+  const data = event.data.json();
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
@@ -32,13 +22,15 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url: string = event.notification.data?.url ?? "/";
+  const url = event.notification.data?.url ?? "/";
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
-      for (const client of windowClients) {
-        if (client.url.includes(url) && "focus" in client) return client.focus();
-      }
-      return self.clients.openWindow(url);
-    }),
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clients) => {
+        for (const client of clients) {
+          if (client.url.includes(url) && "focus" in client) return client.focus();
+        }
+        return self.clients.openWindow(url);
+      }),
   );
 });
