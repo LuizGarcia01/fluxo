@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Pencil, Trash2, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import type { BillWithStatus, Transaction, Category } from "@/lib/budget.types";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface AgendaViewProps {
   bills: BillWithStatus[];
@@ -27,8 +28,7 @@ export function AgendaView({
   const [filter, setFilter] = useState<AgendaFilter>("todos");
   const [payingId, setPayingId] = useState<string | null>(null);
 
-  const fmt = (v: number) =>
-    new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(v);
+  const { fmt } = useCurrency();
 
   const fmtDate = (dateStr: string) => {
     const d = new Date(dateStr + "T00:00:00");

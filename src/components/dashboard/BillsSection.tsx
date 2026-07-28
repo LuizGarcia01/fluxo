@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import {
   CheckCircle2,
   Clock,
@@ -33,8 +34,6 @@ interface BillsSectionProps {
   onUnpay: (transaction_id: string) => Promise<void>;
 }
 
-const fmt = (v: number) =>
-  new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(v);
 
 function BillFormDialog({
   categories,
@@ -102,7 +101,7 @@ function BillFormDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                Valor (€)
+                Valor
               </label>
               <input
                 required
@@ -180,6 +179,7 @@ export function BillsSection({
   onPay,
   onUnpay,
 }: BillsSectionProps) {
+  const { fmt } = useCurrency();
   const [showForm, setShowForm] = useState(false);
   const [editingBill, setEditingBill] = useState<BillTemplate | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);

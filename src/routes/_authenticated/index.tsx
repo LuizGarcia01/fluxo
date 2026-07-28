@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Home, CalendarDays, TrendingUp, Settings, Moon, Sun, LogOut, ChevronDown, Plus, ChevronLeft, ChevronRight, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 import { NexoLogo, NexoMark } from "@/components/dashboard/NexoLogo";
+import { CurrencyProvider, useCurrency } from "@/contexts/CurrencyContext";
 import { TotalCards } from "@/components/dashboard/TotalCards";
 import { Charts } from "@/components/dashboard/Charts";
 import { AddTransactionDialog } from "@/components/dashboard/AddTransactionDialog";
@@ -45,7 +46,11 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Transaction, TransactionType, ExpenseKind, InvestmentType } from "@/lib/budget.types";
 
 export const Route = createFileRoute("/_authenticated/")({
-  component: DashboardPage,
+  component: () => (
+    <CurrencyProvider>
+      <DashboardPage />
+    </CurrencyProvider>
+  ),
 });
 
 type Tab = "inicio" | "agenda" | "investir" | "config";
@@ -220,7 +225,7 @@ function DashboardPage() {
 
   const pendingBills = bills.filter((b) => !b.paid_transaction_id);
   const recentTx = [...transactions].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
-  const fmt = (v: number) => new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(v);
+  const { fmt } = useCurrency();
   const fmtDate = (s: string) => new Date(s + "T00:00:00").toLocaleDateString("pt-PT", { day: "2-digit", month: "short" });
 
   const navTabs = [

@@ -76,7 +76,7 @@ export async function runBillNotifications(): Promise<{ sent: number; errors: st
 
   const { data: settings } = await db
     .from("user_settings")
-    .select("user_id, phone, notify_push, notify_whatsapp")
+    .select("user_id, phone, notify_push, notify_whatsapp, currency")
     .or("notify_push.eq.true,notify_whatsapp.eq.true");
 
   if (!settings || settings.length === 0) {
@@ -97,7 +97,10 @@ export async function runBillNotifications(): Promise<{ sent: number; errors: st
     if (!bills || bills.length === 0) continue;
 
     for (const bill of bills) {
-      const amountFmt = bill.amount.toFixed(2);
+      const currency = (setting.currency ?? "EUR") as string;
+      const currencySymbols: Record<string, string> = { EUR: "€", BRL: "R$", USD: "$", GBP: "£" };
+      const symbol = currencySymbols[currency] ?? "€";
+      const amountFmt = `${bill.amount.toFixed(2)} ${symbol}`;
 
       if (setting.notify_push) {
         const { data: subs } = await db
@@ -109,7 +112,7 @@ export async function runBillNotifications(): Promise<{ sent: number; errors: st
           try {
             await sendPushNotification(sub.endpoint, sub.p256dh, sub.auth, {
               title: `💳 ${bill.name} vence amanhã`,
-              body: `Valor: ${amountFmt} €`,
+              body: `Valor: ${amountFmt}`,
               url: "/",
             });
             sent++;

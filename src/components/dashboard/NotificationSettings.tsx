@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
-import { Bell, BellOff, MessageCircle, Phone, Check, Loader2 } from "lucide-react";
+import { Bell, BellOff, MessageCircle, Phone, Check, Loader2, Coins } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeToPush, unsubscribeFromPush, getPushStatus } from "@/lib/push";
 import { toast } from "sonner";
+import { CURRENCIES, type CurrencyCode, useCurrency } from "@/contexts/CurrencyContext";
 
 interface Settings {
   phone: string;
   notify_push: boolean;
   notify_whatsapp: boolean;
   notify_days_before: number;
+  currency: CurrencyCode;
 }
 
 const DEFAULT: Settings = {
@@ -16,6 +18,7 @@ const DEFAULT: Settings = {
   notify_push: false,
   notify_whatsapp: false,
   notify_days_before: 1,
+  currency: "EUR",
 };
 
 export function NotificationSettings() {
@@ -23,6 +26,7 @@ export function NotificationSettings() {
   const [pushStatus, setPushStatus] = useState<"granted" | "denied" | "default" | "unsupported">("default");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { setCurrency } = useCurrency();
 
   useEffect(() => {
     loadSettings();
@@ -45,6 +49,7 @@ export function NotificationSettings() {
         notify_push: data.notify_push ?? false,
         notify_whatsapp: data.notify_whatsapp ?? false,
         notify_days_before: data.notify_days_before ?? 1,
+        currency: (data.currency as CurrencyCode) ?? "EUR",
       });
     }
     setLoading(false);
@@ -77,6 +82,7 @@ export function NotificationSettings() {
         notify_push: settings.notify_push,
         notify_whatsapp: settings.notify_whatsapp,
         notify_days_before: settings.notify_days_before,
+        currency: settings.currency,
         updated_at: new Date().toISOString(),
       }, { onConflict: "user_id" });
 
@@ -84,6 +90,7 @@ export function NotificationSettings() {
     if (error) {
       toast.error("Erro ao guardar configurações");
     } else {
+      setCurrency(settings.currency);
       toast.success("Configurações guardadas");
     }
   }
@@ -196,6 +203,30 @@ export function NotificationSettings() {
             <p className="text-[11px] text-muted-foreground">Inclui o código do país (ex: +351 para Portugal)</p>
           </div>
         )}
+      </div>
+
+      {/* Moeda */}
+      <div className="bg-surface rounded-2xl border border-border p-4 space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <Coins className="size-4 text-muted-foreground" />
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Moeda</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {(Object.entries(CURRENCIES) as [CurrencyCode, typeof CURRENCIES[CurrencyCode]][]).map(([code, cfg]) => (
+            <button
+              key={code}
+              onClick={() => setSettings((s) => ({ ...s, currency: code }))}
+              className={`rounded-xl py-2.5 px-3 text-sm font-semibold transition-colors text-left ${
+                settings.currency === code
+                  ? "bg-brand text-white shadow-sm"
+                  : "bg-card border border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <span className="text-base mr-1.5">{cfg.symbol}</span>
+              {cfg.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Guardar */}

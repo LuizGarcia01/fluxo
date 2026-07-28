@@ -1,5 +1,6 @@
 ﻿import { TrendingUp, TrendingDown, Wallet, BarChart3, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 import type { MonthlySummary, InvestmentSummary } from "@/lib/budget.types";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface TotalCardsProps {
   summary: MonthlySummary;
@@ -7,15 +8,7 @@ interface TotalCardsProps {
 }
 
 export function TotalCards({ summary, investments }: TotalCardsProps) {
-  const fmt = (v: number) =>
-    new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(v);
-
-  const fmtShort = (v: number) =>
-    new Intl.NumberFormat("pt-PT", {
-      style: "currency",
-      currency: "EUR",
-      maximumFractionDigits: 0,
-    }).format(v);
+  const { fmt, fmtShort } = useCurrency();
 
   const fixedPct = summary.totalExpense > 0
     ? Math.round((summary.totalFixedExpense / summary.totalExpense) * 100)

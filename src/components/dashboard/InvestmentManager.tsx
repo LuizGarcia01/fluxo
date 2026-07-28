@@ -1,6 +1,7 @@
 ﻿import { useState } from "react";
 import { TrendingUp, X, Trash2, Pencil, Check, Plus, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import type { Investment, InvestmentContribution, InvestmentType } from "@/lib/budget.types";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface InvestmentManagerProps {
   investments: Investment[];
@@ -30,8 +31,6 @@ const TYPE_LABELS: Record<InvestmentType, string> = {
 
 const TYPE_OPTIONS: InvestmentType[] = ["renda_fixa", "acoes", "fii", "cripto", "outros"];
 
-const formatCurrency = (v: number) =>
-  new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(v);
 
 export function InvestmentManager({
   investments,
@@ -43,6 +42,7 @@ export function InvestmentManager({
   onDeleteContribution,
   inline = false,
 }: InvestmentManagerProps) {
+  const { fmt: formatCurrency } = useCurrency();
   const [isOpen, setIsOpen] = useState(false);
   const [tab, setTab] = useState<"list" | "new" | "contribute">(inline ? "new" : "list");
 

@@ -1,5 +1,6 @@
 ﻿import { BarChart2, PieChart, Tag } from "lucide-react";
 import type { CategorySpending, InvestmentSummary, InvestmentType } from "@/lib/budget.types";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface ChartsProps {
   monthlyComparison: { month: string; income: number; expense: number }[];
@@ -34,8 +35,7 @@ const TYPE_TEXT: Record<InvestmentType, string> = {
 export function Charts({ monthlyComparison, categorySpending, investments }: ChartsProps) {
   const maxValue = Math.max(...monthlyComparison.flatMap((m) => [m.income, m.expense]), 1);
 
-  const fmt = (v: number) =>
-    new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(v);
+  const { fmtShort: fmt } = useCurrency();
 
   const fixed = categorySpending.filter((c) => c.category.expense_kind === "fixed");
   const variable = categorySpending.filter((c) => c.category.expense_kind === "variable");

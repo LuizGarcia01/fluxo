@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect } from "react";
 import { Plus, X, Pencil } from "lucide-react";
 import type { Category, Transaction, TransactionType } from "@/lib/budget.types";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface AddTransactionDialogProps {
   categories: Category[];
@@ -28,6 +29,7 @@ export function AddTransactionDialog({
   open: controlledOpen,
   onOpenChange,
 }: AddTransactionDialogProps) {
+  const { symbol } = useCurrency();
   const isEdit = !!editingTransaction;
   const [internalOpen, setInternalOpen] = useState(isEdit);
   const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
@@ -157,7 +159,7 @@ export function AddTransactionDialog({
 
               {/* Amount */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Valor (€)</label>
+                <label className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Valor ({symbol})</label>
                 <input
                   type="number"
                   step="0.01"
