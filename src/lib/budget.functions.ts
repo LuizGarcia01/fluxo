@@ -450,6 +450,16 @@ const billSchema = z.object({
   due_day: z.coerce.number().min(1).max(31),
 });
 
+const installmentBillSchema = z.object({
+  name: z.string().min(1),
+  amount: z.coerce.number().positive(),
+  category_id: z.string().uuid().nullable(),
+  due_day: z.coerce.number().min(1).max(31),
+  total: z.coerce.number().int().min(2).max(60),
+  start_month: z.coerce.number().int().min(1).max(12),
+  start_year: z.coerce.number().int(),
+});
+
 export const getBills = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => periodSchema.parse(input))
@@ -482,7 +492,12 @@ export const getBills = createServerFn({ method: "POST" })
       if (tx.bill_id) paidMap.set(tx.bill_id, tx.id);
     }
 
-    return (billsRes.data ?? []).map((bill) => {
+    const visibleBills = (billsRes.data ?? []).filter((bill) => {
+      if (!bill.is_installment) return true;
+      return bill.installment_month === data.month && bill.installment_year === data.year;
+    });
+
+    return visibleBills.map((bill) => {
       const paid_transaction_id = paidMap.get(bill.id) ?? null;
       const is_overdue =
         isCurrentMonth && !paid_transaction_id && bill.due_day < todayDay;
@@ -529,6 +544,44 @@ export const deleteBill = createServerFn({ method: "POST" })
       .from("bill_templates")
       .delete()
       .eq("id", data.id)
+      .eq("user_id", context.userId);
+    if (error) throw error;
+  });
+
+export const createInstallmentBills = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => installmentBillSchema.parse(input))
+  .handler(async ({ data, context }): Promise<void> => {
+    const group_id = crypto.randomUUID();
+    const rows = Array.from({ length: data.total }, (_, i) => {
+      const monthOffset = data.start_month - 1 + i;
+      return {
+        user_id: context.userId,
+        name: data.name,
+        amount: data.amount,
+        category_id: data.category_id,
+        due_day: data.due_day,
+        is_active: true,
+        is_installment: true,
+        installment_total: data.total,
+        installment_current: i + 1,
+        installment_group_id: group_id,
+        installment_month: (monthOffset % 12) + 1,
+        installment_year: data.start_year + Math.floor(monthOffset / 12),
+      };
+    });
+    const { error } = await context.supabase.from("bill_templates").insert(rows);
+    if (error) throw error;
+  });
+
+export const deleteInstallmentGroup = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ group_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }): Promise<void> => {
+    const { error } = await context.supabase
+      .from("bill_templates")
+      .delete()
+      .eq("installment_group_id", data.group_id)
       .eq("user_id", context.userId);
     if (error) throw error;
   });

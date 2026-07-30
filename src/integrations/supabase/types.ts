@@ -22,6 +22,12 @@ export type Database = {
           due_day: number
           id: string
           is_active: boolean
+          is_installment: boolean
+          installment_total: number | null
+          installment_current: number | null
+          installment_group_id: string | null
+          installment_month: number | null
+          installment_year: number | null
           name: string
           user_id: string
         }
@@ -32,6 +38,12 @@ export type Database = {
           due_day: number
           id?: string
           is_active?: boolean
+          is_installment?: boolean
+          installment_total?: number | null
+          installment_current?: number | null
+          installment_group_id?: string | null
+          installment_month?: number | null
+          installment_year?: number | null
           name: string
           user_id: string
         }
@@ -42,6 +54,12 @@ export type Database = {
           due_day?: number
           id?: string
           is_active?: boolean
+          is_installment?: boolean
+          installment_total?: number | null
+          installment_current?: number | null
+          installment_group_id?: string | null
+          installment_month?: number | null
+          installment_year?: number | null
           name?: string
           user_id?: string
         }

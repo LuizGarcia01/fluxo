@@ -37,8 +37,10 @@ import {
   deleteContribution,
   getBills,
   createBill,
+  createInstallmentBills,
   updateBill,
   deleteBill,
+  deleteInstallmentGroup,
   payBill,
   unpayBill,
 } from "@/lib/budget.functions";
@@ -118,15 +120,33 @@ function DashboardPage() {
   };
 
   // ── Handlers ──
-  const handleAddBill = async (data: { name: string; amount: number; category_id: string | null; due_day: number }) => {
-    await createBill({ data });
+  const handleAddBill = async (data: {
+    name: string; amount: number; category_id: string | null; due_day: number;
+    installment?: { total: number; start_month: number; start_year: number };
+  }) => {
+    if (data.installment) {
+      await createInstallmentBills({ data: {
+        name: data.name, amount: data.amount, category_id: data.category_id,
+        due_day: data.due_day, total: data.installment.total,
+        start_month: data.installment.start_month, start_year: data.installment.start_year,
+      }});
+    } else {
+      await createBill({ data });
+    }
     invalidateMonth();
   };
   const handleUpdateBill = async (data: { id: string; name: string; amount: number; category_id: string | null; due_day: number }) => {
     await updateBill({ data });
     invalidateMonth();
   };
-  const handleDeleteBill = async (id: string) => { await deleteBill({ data: { id } }); invalidateMonth(); };
+  const handleDeleteBill = async (id: string, groupId?: string) => {
+    if (groupId) {
+      await deleteInstallmentGroup({ data: { group_id: groupId } });
+    } else {
+      await deleteBill({ data: { id } });
+    }
+    invalidateMonth();
+  };
   const handlePayBill = async (bill_id: string, date: string) => { await payBill({ data: { bill_id, date } }); invalidateMonth(); };
   const handleUnpayBill = async (transaction_id: string) => { await unpayBill({ data: { transaction_id } }); invalidateMonth(); };
 
