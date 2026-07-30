@@ -168,6 +168,35 @@ export const createTransaction = createServerFn({ method: "POST" })
     return transaction as unknown as Transaction;
   });
 
+export const createInstallmentTransactions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      ...transactionSchema.shape,
+      total: z.coerce.number().int().min(2).max(60),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<void> => {
+    const [year, month, day] = data.date.split("-").map(Number);
+    const rows = Array.from({ length: data.total }, (_, i) => {
+      const d = new Date(year, month - 1 + i, day);
+      // cap to last day of month if day overflows (e.g. day 31 in Feb)
+      const maxDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+      const safeDay = Math.min(day, maxDay);
+      const date = new Date(year, month - 1 + i, safeDay);
+      return {
+        user_id: context.userId,
+        type: data.type,
+        category_id: data.categoryId,
+        amount: data.amount,
+        description: `${data.description} (${i + 1}/${data.total})`,
+        date: date.toISOString().slice(0, 10),
+      };
+    });
+    const { error } = await context.supabase.from("transactions").insert(rows);
+    if (error) throw error;
+  });
+
 export const updateTransaction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>

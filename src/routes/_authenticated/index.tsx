@@ -18,6 +18,7 @@ import { AgendaView } from "@/components/dashboard/AgendaView";
 import {
   getCategories,
   getTransactions,
+  createInstallmentTransactions,
   getMonthlySummary,
   getMonthlyComparison,
   getCategorySpending,
@@ -150,11 +151,16 @@ function DashboardPage() {
   const handlePayBill = async (bill_id: string, date: string) => { await payBill({ data: { bill_id, date } }); invalidateMonth(); };
   const handleUnpayBill = async (transaction_id: string) => { await unpayBill({ data: { transaction_id } }); invalidateMonth(); };
 
-  const handleAddTransaction = async (data: { type: TransactionType; categoryId: string | null; amount: number; description: string; date: string }) => {
+  const handleAddTransaction = async (data: { type: TransactionType; categoryId: string | null; amount: number; description: string; date: string; installmentTotal?: number }) => {
     try {
-      await createTransaction({ data });
+      if (data.installmentTotal && data.installmentTotal >= 2) {
+        await createInstallmentTransactions({ data: { ...data, total: data.installmentTotal } });
+        toast.success(`${data.installmentTotal} parcelas adicionadas!`);
+      } else {
+        await createTransaction({ data });
+        toast.success("Lançamento adicionado!");
+      }
       invalidateMonth();
-      toast.success("Lançamento adicionado!");
     } catch { toast.error("Erro ao adicionar lançamento."); throw new Error("failed"); }
   };
 

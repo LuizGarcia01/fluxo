@@ -1,7 +1,9 @@
 ﻿import { useState, useEffect } from "react";
-import { Plus, X, Pencil } from "lucide-react";
+import { Plus, X, Pencil, Layers } from "lucide-react";
 import type { Category, Transaction, TransactionType } from "@/lib/budget.types";
 import { useCurrency } from "@/contexts/CurrencyContext";
+
+const MONTHS_PT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 
 interface AddTransactionDialogProps {
   categories: Category[];
@@ -12,6 +14,7 @@ interface AddTransactionDialogProps {
     amount: number;
     description: string;
     date: string;
+    installmentTotal?: number;
   }) => Promise<void>;
   editingTransaction?: Transaction | null;
   onClose?: () => void;
@@ -38,6 +41,8 @@ export function AddTransactionDialog({
     onOpenChange?.(v);
   };
   const [loading, setLoading] = useState(false);
+  const [isInstallment, setIsInstallment] = useState(false);
+  const [installmentCount, setInstallmentCount] = useState(2);
 
   const defaultDate = `${currentDate.year}-${String(currentDate.month).padStart(2, "0")}-${new Date().getDate().toString().padStart(2, "0")}`;
 
@@ -67,8 +72,22 @@ export function AddTransactionDialog({
     setCategoryId("");
     setType("expense");
     setDate(defaultDate);
+    setIsInstallment(false);
+    setInstallmentCount(2);
     onClose?.();
   };
+
+  const installmentStartMonth = date ? new Date(date + "T00:00:00").getMonth() : currentDate.month - 1;
+  const installmentStartYear = date ? new Date(date + "T00:00:00").getFullYear() : currentDate.year;
+  const installmentPreview = (() => {
+    const months = Array.from({ length: installmentCount }, (_, i) => {
+      const offset = installmentStartMonth + i;
+      return MONTHS_PT[offset % 12];
+    });
+    return installmentCount <= 4
+      ? months.join(" · ")
+      : months.slice(0, 3).join(" · ") + ` · +${installmentCount - 3} meses`;
+  })();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,6 +99,7 @@ export function AddTransactionDialog({
         amount: Number(amount.replace(",", ".")),
         description,
         date,
+        installmentTotal: !isEdit && isInstallment ? installmentCount : undefined,
       });
       close();
     } finally {
@@ -199,12 +219,59 @@ export function AddTransactionDialog({
                 />
               </div>
 
+              {/* Installment toggle — only for new transactions */}
+              {!isEdit && (
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsInstallment((v) => !v)}
+                    className={`w-full flex items-center justify-between rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
+                      isInstallment
+                        ? "border-brand bg-brand/8 text-brand"
+                        : "border-border bg-surface text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Layers className="size-4" />
+                      Parcelado
+                    </span>
+                    <span className={`size-4 rounded border-2 flex items-center justify-center transition-colors ${isInstallment ? "border-brand bg-brand" : "border-border"}`}>
+                      {isInstallment && <span className="block size-2 rounded-sm bg-white" />}
+                    </span>
+                  </button>
+
+                  {isInstallment && (
+                    <div className="rounded-xl bg-surface border border-border px-4 py-3 space-y-2.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Nº de parcelas</label>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setInstallmentCount((n) => Math.max(2, n - 1))}
+                            className="size-7 rounded-lg border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors font-bold"
+                          >−</button>
+                          <span className="w-8 text-center text-sm font-bold tabular-nums">{installmentCount}x</span>
+                          <button
+                            type="button"
+                            onClick={() => setInstallmentCount((n) => Math.min(60, n + 1))}
+                            className="size-7 rounded-lg border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors font-bold"
+                          >+</button>
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        <span className="font-semibold text-foreground">{installmentPreview}</span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <button
                 type="submit"
                 disabled={loading}
                 className="w-full mt-1 rounded-xl bg-brand py-3 text-sm font-bold text-primary-foreground hover:opacity-90 active:scale-[0.99] transition-all disabled:opacity-50 shadow-sm shadow-brand/30"
               >
-                {loading ? "Salvando..." : isEdit ? "Salvar Alterações" : "Adicionar Lançamento"}
+                {loading ? "Salvando..." : isEdit ? "Salvar Alterações" : isInstallment ? `Adicionar ${installmentCount}x` : "Adicionar Lançamento"}
               </button>
             </form>
           </div>
