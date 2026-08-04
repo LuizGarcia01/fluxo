@@ -99,27 +99,24 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
     }
 
     const actualUserId = data.user.id;
-    const delegatedTo = (data.user.user_metadata?.delegated_to ?? null) as string | null;
 
-    if (delegatedTo) {
-      const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      if (SERVICE_KEY) {
-        const adminClient = createClient<Database>(SUPABASE_URL!, SERVICE_KEY, {
-          auth: { persistSession: false, autoRefreshToken: false },
+    // Always query the DB directly — never trust JWT user_metadata which can be stale
+    const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (SERVICE_KEY) {
+      const adminClient = createClient<Database>(SUPABASE_URL!, SERVICE_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { data: membership } = await adminClient
+        .from("household_invites")
+        .select("owner_id")
+        .eq("member_id", actualUserId)
+        .not("accepted_at", "is", null)
+        .limit(1);
+
+      if (membership?.[0]?.owner_id) {
+        return next({
+          context: { supabase: adminClient, userId: membership[0].owner_id, actualUserId, claims: data.user },
         });
-        const { data: invite } = await adminClient
-          .from("household_invites")
-          .select("id")
-          .eq("member_id", actualUserId)
-          .eq("owner_id", delegatedTo)
-          .not("accepted_at", "is", null)
-          .maybeSingle();
-
-        if (invite) {
-          return next({
-            context: { supabase: adminClient, userId: delegatedTo, actualUserId, claims: data.user },
-          });
-        }
       }
     }
 

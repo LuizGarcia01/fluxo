@@ -86,6 +86,7 @@ export const getCategories = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("categories")
       .select("*")
+      .eq("user_id", context.userId)
       .order("name", { ascending: true });
     if (error) throw error;
     return data ?? [];
@@ -160,6 +161,7 @@ export const getTransactions = createServerFn({ method: "POST" })
     const { data: transactions, error } = await context.supabase
       .from("transactions")
       .select("*, category:categories(*)")
+      .eq("user_id", context.userId)
       .gte("date", startDate).lte("date", endDate)
       .order("date", { ascending: false });
     if (error) throw error;
@@ -269,6 +271,7 @@ export const getMonthlySummary = createServerFn({ method: "POST" })
     const { data: transactions, error } = await context.supabase
       .from("transactions")
       .select("type, amount, category:categories(expense_kind)")
+      .eq("user_id", context.userId)
       .gte("date", startDate).lte("date", endDate);
     if (error) throw error;
 
@@ -297,6 +300,7 @@ export const getCategorySpending = createServerFn({ method: "POST" })
     const { data: transactions, error } = await context.supabase
       .from("transactions")
       .select("amount, category:categories(*)")
+      .eq("user_id", context.userId)
       .eq("type", "expense")
       .gte("date", startDate).lte("date", endDate);
     if (error) throw error;
@@ -337,6 +341,7 @@ export const getMonthlyComparison = createServerFn({ method: "POST" })
         const { startDate, endDate } = getMonthDateRange(m.year, m.month);
         const { data: transactions, error } = await context.supabase
           .from("transactions").select("type, amount")
+          .eq("user_id", context.userId)
           .gte("date", startDate).lte("date", endDate);
         if (error) throw error;
         const income = (transactions ?? []).filter((t) => t.type === "income").reduce((s, t) => s + Number(t.amount), 0);
@@ -354,6 +359,7 @@ export const getInvestments = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<Investment[]> => {
     const { data, error } = await context.supabase
       .from("investments").select("*")
+      .eq("user_id", context.userId)
       .order("name", { ascending: true });
     if (error) throw error;
     return (data ?? []) as unknown as Investment[];
@@ -414,6 +420,7 @@ export const getContributions = createServerFn({ method: "POST" })
     const { data: rows, error } = await context.supabase
       .from("investment_contributions")
       .select("*, investment:investments(*)")
+      .eq("user_id", context.userId)
       .gte("date", startDate).lte("date", endDate)
       .order("date", { ascending: false });
     if (error) throw error;
@@ -530,6 +537,7 @@ export const getBills = createServerFn({ method: "POST" })
       context.supabase
         .from("transactions")
         .select("id, bill_id")
+        .eq("user_id", context.userId)
         .not("bill_id", "is", null)
         .gte("date", startDate)
         .lte("date", endDate),
@@ -881,10 +889,13 @@ export const getInvestmentSummary = createServerFn({ method: "POST" })
     const { startDate, endDate } = getMonthDateRange(data.year, data.month);
 
     const [invRes, contribRes, incomeRes] = await Promise.all([
-      context.supabase.from("investments").select("type, current_value"),
+      context.supabase.from("investments").select("type, current_value")
+        .eq("user_id", context.userId),
       context.supabase.from("investment_contributions").select("amount")
+        .eq("user_id", context.userId)
         .gte("date", startDate).lte("date", endDate),
       context.supabase.from("transactions").select("amount")
+        .eq("user_id", context.userId)
         .eq("type", "income").gte("date", startDate).lte("date", endDate),
     ]);
     if (invRes.error) throw invRes.error;
