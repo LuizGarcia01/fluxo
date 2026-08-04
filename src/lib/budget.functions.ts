@@ -678,13 +678,14 @@ export const getHouseholdInfo = createServerFn({ method: "POST" })
       };
     }
 
-    // Am I an owner with a member?
-    const { data: acceptedInvite } = await admin
+    // Am I an owner with a member? Use limit(1) to avoid maybeSingle() failing on duplicate rows from test pollution
+    const { data: acceptedInvites } = await admin
       .from("household_invites")
       .select("member_id")
       .eq("owner_id", actualUserId)
       .not("accepted_at", "is", null)
-      .maybeSingle();
+      .limit(1);
+    const acceptedInvite = acceptedInvites?.[0] ?? null;
 
     if (acceptedInvite?.member_id) {
       const memberId = acceptedInvite.member_id;
@@ -705,13 +706,14 @@ export const getHouseholdInfo = createServerFn({ method: "POST" })
     }
 
     // Check for pending invite
-    const { data: pendingInvite } = await admin
+    const { data: pendingInvites } = await admin
       .from("household_invites")
       .select("token, expires_at")
       .eq("owner_id", actualUserId)
       .is("member_id", null)
       .gt("expires_at", new Date().toISOString())
-      .maybeSingle();
+      .limit(1);
+    const pendingInvite = pendingInvites?.[0] ?? null;
 
     return {
       status: "solo",
@@ -727,10 +729,10 @@ export const createHouseholdInvite = createServerFn({ method: "POST" })
   .handler(async ({ context }): Promise<{ token: string }> => {
     if (context.actualUserId !== context.userId) throw new Error("Apenas o dono pode criar convites");
     const admin = adminSupabase();
-    // Expire any existing pending invites
+    // Delete all pending (unaccepted) invites for this owner to avoid stale rows
     await admin
       .from("household_invites")
-      .update({ expires_at: new Date().toISOString() })
+      .delete()
       .eq("owner_id", context.userId)
       .is("member_id", null);
     // Create new invite
@@ -782,11 +784,25 @@ export const acceptHouseholdInvite = createServerFn({ method: "POST" })
     if (invite.member_id) throw new Error("Convite já utilizado");
     if (new Date(invite.expires_at) < new Date()) throw new Error("Convite expirado");
     if (invite.owner_id === actualUserId) throw new Error("Não podes aceitar o teu próprio convite");
-    // Mark invite accepted
+
+    // Clean up any previous membership this user may have had (prevent stale state from old test sessions)
+    const { data: oldMemberships } = await admin
+      .from("household_invites")
+      .select("id, owner_id")
+      .eq("member_id", actualUserId)
+      .not("accepted_at", "is", null);
+    if (oldMemberships && oldMemberships.length > 0) {
+      await admin
+        .from("household_invites")
+        .update({ member_id: null, accepted_at: null })
+        .in("id", oldMemberships.map((r) => r.id));
+    }
+
+    // Mark new invite accepted
     await admin.from("household_invites").update({ member_id: actualUserId, accepted_at: new Date().toISOString() }).eq("id", invite.id);
     // Set member's default color if not set
     await admin.from("user_settings").upsert({ user_id: actualUserId, display_color: "#818cf8" }, { onConflict: "user_id", ignoreDuplicates: true });
-    // Set delegation in member's metadata
+    // Overwrite delegation in member's metadata (force replace, not merge)
     await admin.auth.admin.updateUserById(actualUserId, { user_metadata: { delegated_to: invite.owner_id } });
   });
 
