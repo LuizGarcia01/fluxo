@@ -22,8 +22,23 @@ export interface Transaction {
   description: string;
   date: string;
   bill_id: string | null;
+  created_by: string | null;
   created_at: string;
   category?: Category | null;
+}
+
+export interface HouseholdMember {
+  userId: string;
+  displayName: string;
+  color: string;
+  initials: string;
+}
+
+export interface HouseholdInfo {
+  status: "solo" | "owner" | "member";
+  me: HouseholdMember;
+  partner?: HouseholdMember;
+  pendingInvite?: { token: string; expiresAt: string };
 }
 
 export interface MonthlySummary {

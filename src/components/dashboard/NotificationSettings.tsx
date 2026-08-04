@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
-import { Bell, BellOff, MessageCircle, Phone, Check, Loader2, Coins, Smartphone } from "lucide-react";
+import { Bell, BellOff, MessageCircle, Phone, Check, Loader2, Coins, Smartphone, UserCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeToPush, unsubscribeFromPush, getPushStatus } from "@/lib/push";
 import { toast } from "sonner";
 import { CURRENCIES, type CurrencyCode, useCurrency } from "@/contexts/CurrencyContext";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
+import { UserAvatar } from "./UserAvatar";
+
+const PRESET_COLORS = ["#6ec6ba", "#818cf8", "#f59e0b", "#f472b6", "#34d399", "#60a5fa"];
 
 interface Settings {
   phone: string;
@@ -12,6 +15,8 @@ interface Settings {
   notify_whatsapp: boolean;
   notify_days_before: number;
   currency: CurrencyCode;
+  display_name: string;
+  display_color: string;
 }
 
 const DEFAULT: Settings = {
@@ -20,6 +25,8 @@ const DEFAULT: Settings = {
   notify_whatsapp: false,
   notify_days_before: 1,
   currency: "EUR",
+  display_name: "",
+  display_color: "#6ec6ba",
 };
 
 export function NotificationSettings() {
@@ -52,6 +59,8 @@ export function NotificationSettings() {
         notify_whatsapp: data.notify_whatsapp ?? false,
         notify_days_before: data.notify_days_before ?? 1,
         currency: (data.currency as CurrencyCode) ?? "EUR",
+        display_name: data.display_name ?? "",
+        display_color: data.display_color ?? "#6ec6ba",
       });
     }
     setLoading(false);
@@ -85,6 +94,8 @@ export function NotificationSettings() {
         notify_whatsapp: settings.notify_whatsapp,
         notify_days_before: settings.notify_days_before,
         currency: settings.currency,
+        display_name: settings.display_name || null,
+        display_color: settings.display_color || null,
         updated_at: new Date().toISOString(),
       }, { onConflict: "user_id" });
 
@@ -258,6 +269,44 @@ export function NotificationSettings() {
           </div>
         </div>
       )}
+
+      {/* Perfil / Avatar */}
+      <div className="bg-surface rounded-2xl border border-border p-4 space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <UserCircle className="size-4 text-muted-foreground" />
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">O meu perfil</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <UserAvatar
+            initials={settings.display_name
+              ? settings.display_name.split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("")
+              : "?"}
+            color={settings.display_color}
+            size="md"
+            title={settings.display_name || "Sem nome"}
+          />
+          <input
+            type="text"
+            value={settings.display_name}
+            onChange={(e) => setSettings((s) => ({ ...s, display_name: e.target.value }))}
+            placeholder="O teu nome (ex: Luiz Silva)"
+            className="flex-1 rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm outline-none focus:border-brand/50 focus:ring-2 focus:ring-brand/10 transition-colors"
+          />
+        </div>
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Cor do avatar</p>
+          <div className="flex gap-2 flex-wrap">
+            {PRESET_COLORS.map((c) => (
+              <button
+                key={c}
+                onClick={() => setSettings((s) => ({ ...s, display_color: c }))}
+                className="size-7 rounded-full transition-transform hover:scale-110"
+                style={{ backgroundColor: c, outline: settings.display_color === c ? `2px solid ${c}` : "2px solid transparent", outlineOffset: 2 }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Guardar */}
       <button

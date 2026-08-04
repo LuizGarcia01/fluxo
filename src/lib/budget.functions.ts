@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { createClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Database } from "@/integrations/supabase/types";
 import type {
   Category,
   Transaction,
@@ -13,7 +15,24 @@ import type {
   InvestmentType,
   BillTemplate,
   BillWithStatus,
+  HouseholdInfo,
 } from "./budget.types";
+
+function adminSupabase() {
+  return createClient<Database>(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+}
+
+function toInitials(name: string) {
+  return name.split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
+}
+
+function nameFromEmail(email: string) {
+  return email.split("@")[0].replace(/[._\-+]/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+}
 
 const categorySchema = z.object({
   name: z.string().min(1),
@@ -160,6 +179,7 @@ export const createTransaction = createServerFn({ method: "POST" })
         amount: data.amount,
         description: data.description,
         date: data.date,
+        created_by: context.actualUserId,
       })
       .select("*, category:categories(*)")
       .single();
@@ -191,6 +211,7 @@ export const createInstallmentTransactions = createServerFn({ method: "POST" })
         amount: data.amount,
         description: `${data.description} (${i + 1}/${data.total})`,
         date: date.toISOString().slice(0, 10),
+        created_by: context.actualUserId,
       };
     });
     const { error } = await context.supabase.from("transactions").insert(rows);
@@ -540,7 +561,7 @@ export const createBill = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<BillTemplate> => {
     const { data: row, error } = await context.supabase
       .from("bill_templates")
-      .insert({ user_id: context.userId, ...data })
+      .insert({ user_id: context.userId, created_by: context.actualUserId, ...data })
       .select("*, category:categories(*)")
       .single();
     if (error) throw error;
@@ -586,6 +607,7 @@ export const createInstallmentBills = createServerFn({ method: "POST" })
       const monthOffset = data.start_month - 1 + i;
       return {
         user_id: context.userId,
+        created_by: context.actualUserId,
         name: data.name,
         amount: data.amount,
         category_id: data.category_id,
@@ -613,6 +635,178 @@ export const deleteInstallmentGroup = createServerFn({ method: "POST" })
       .eq("installment_group_id", data.group_id)
       .eq("user_id", context.userId);
     if (error) throw error;
+  });
+
+// ── Household / Partilha ────────────────────────────────────────────────────
+
+export const getHouseholdInfo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<HouseholdInfo> => {
+    const admin = adminSupabase();
+    const actualUserId = context.actualUserId;
+
+    // Load my own settings
+    const { data: mySettings } = await admin
+      .from("user_settings")
+      .select("display_name, display_color")
+      .eq("user_id", actualUserId)
+      .maybeSingle();
+
+    // Load my email for fallback name
+    const { data: myUser } = await admin.auth.admin.getUserById(actualUserId);
+    const myEmail = myUser?.user?.email ?? "";
+    const myName = mySettings?.display_name || nameFromEmail(myEmail);
+    const myColor = mySettings?.display_color ?? "#6ec6ba";
+    const me = { userId: actualUserId, displayName: myName, color: myColor, initials: toInitials(myName) };
+
+    // Am I a delegate (member)?
+    if (actualUserId !== context.userId) {
+      const ownerId = context.userId;
+      const { data: ownerSettings } = await admin
+        .from("user_settings")
+        .select("display_name, display_color")
+        .eq("user_id", ownerId)
+        .maybeSingle();
+      const { data: ownerUser } = await admin.auth.admin.getUserById(ownerId);
+      const ownerEmail = ownerUser?.user?.email ?? "";
+      const ownerName = ownerSettings?.display_name || nameFromEmail(ownerEmail);
+      const ownerColor = ownerSettings?.display_color ?? "#6ec6ba";
+      return {
+        status: "member",
+        me,
+        partner: { userId: ownerId, displayName: ownerName, color: ownerColor, initials: toInitials(ownerName) },
+      };
+    }
+
+    // Am I an owner with a member?
+    const { data: acceptedInvite } = await admin
+      .from("household_invites")
+      .select("member_id")
+      .eq("owner_id", actualUserId)
+      .not("accepted_at", "is", null)
+      .maybeSingle();
+
+    if (acceptedInvite?.member_id) {
+      const memberId = acceptedInvite.member_id;
+      const { data: memberSettings } = await admin
+        .from("user_settings")
+        .select("display_name, display_color")
+        .eq("user_id", memberId)
+        .maybeSingle();
+      const { data: memberUser } = await admin.auth.admin.getUserById(memberId);
+      const memberEmail = memberUser?.user?.email ?? "";
+      const memberName = memberSettings?.display_name || nameFromEmail(memberEmail);
+      const memberColor = memberSettings?.display_color ?? "#818cf8";
+      return {
+        status: "owner",
+        me,
+        partner: { userId: memberId, displayName: memberName, color: memberColor, initials: toInitials(memberName) },
+      };
+    }
+
+    // Check for pending invite
+    const { data: pendingInvite } = await admin
+      .from("household_invites")
+      .select("token, expires_at")
+      .eq("owner_id", actualUserId)
+      .is("member_id", null)
+      .gt("expires_at", new Date().toISOString())
+      .maybeSingle();
+
+    return {
+      status: "solo",
+      me,
+      pendingInvite: pendingInvite
+        ? { token: pendingInvite.token, expiresAt: pendingInvite.expires_at }
+        : undefined,
+    };
+  });
+
+export const createHouseholdInvite = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<{ token: string }> => {
+    if (context.actualUserId !== context.userId) throw new Error("Apenas o dono pode criar convites");
+    const admin = adminSupabase();
+    // Expire any existing pending invites
+    await admin
+      .from("household_invites")
+      .update({ expires_at: new Date().toISOString() })
+      .eq("owner_id", context.userId)
+      .is("member_id", null);
+    // Create new invite
+    const { data: invite, error } = await admin
+      .from("household_invites")
+      .insert({ owner_id: context.userId })
+      .select("token")
+      .single();
+    if (error || !invite) throw new Error("Erro ao criar convite");
+    return { token: invite.token };
+  });
+
+export const getInviteInfo = createServerFn({ method: "POST" })
+  .inputValidator((input) => z.object({ token: z.string().uuid() }).parse(input))
+  .handler(async ({ data }): Promise<{ ownerName: string; ownerColor: string; ownerId: string } | null> => {
+    const admin = adminSupabase();
+    const { data: invite } = await admin
+      .from("household_invites")
+      .select("owner_id, member_id, expires_at")
+      .eq("token", data.token)
+      .maybeSingle();
+    if (!invite) return null;
+    if (invite.member_id) return null;
+    if (new Date(invite.expires_at) < new Date()) return null;
+    const { data: settings } = await admin
+      .from("user_settings")
+      .select("display_name, display_color")
+      .eq("user_id", invite.owner_id)
+      .maybeSingle();
+    const { data: ownerUser } = await admin.auth.admin.getUserById(invite.owner_id);
+    const email = ownerUser?.user?.email ?? "";
+    const ownerName = settings?.display_name || nameFromEmail(email);
+    const ownerColor = settings?.display_color ?? "#6ec6ba";
+    return { ownerName, ownerColor, ownerId: invite.owner_id };
+  });
+
+export const acceptHouseholdInvite = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ token: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }): Promise<void> => {
+    const actualUserId = context.actualUserId;
+    const admin = adminSupabase();
+    const { data: invite } = await admin
+      .from("household_invites")
+      .select("id, owner_id, member_id, expires_at")
+      .eq("token", data.token)
+      .maybeSingle();
+    if (!invite) throw new Error("Convite não encontrado");
+    if (invite.member_id) throw new Error("Convite já utilizado");
+    if (new Date(invite.expires_at) < new Date()) throw new Error("Convite expirado");
+    if (invite.owner_id === actualUserId) throw new Error("Não podes aceitar o teu próprio convite");
+    // Mark invite accepted
+    await admin.from("household_invites").update({ member_id: actualUserId, accepted_at: new Date().toISOString() }).eq("id", invite.id);
+    // Set member's default color if not set
+    await admin.from("user_settings").upsert({ user_id: actualUserId, display_color: "#818cf8" }, { onConflict: "user_id", ignoreDuplicates: true });
+    // Set delegation in member's metadata
+    await admin.auth.admin.updateUserById(actualUserId, { user_metadata: { delegated_to: invite.owner_id } });
+  });
+
+export const removeHouseholdAccess = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<void> => {
+    const admin = adminSupabase();
+    const actualUserId = context.actualUserId;
+    if (actualUserId !== context.userId) {
+      // Member removing themselves
+      await admin.auth.admin.updateUserById(actualUserId, { user_metadata: { delegated_to: null } });
+      await admin.from("household_invites").update({ member_id: null, accepted_at: null }).eq("member_id", actualUserId);
+    } else {
+      // Owner removing member
+      const { data: invite } = await admin.from("household_invites").select("member_id").eq("owner_id", actualUserId).not("accepted_at", "is", null).maybeSingle();
+      if (invite?.member_id) {
+        await admin.auth.admin.updateUserById(invite.member_id, { user_metadata: { delegated_to: null } });
+        await admin.from("household_invites").update({ member_id: null, accepted_at: null }).eq("owner_id", actualUserId);
+      }
+    }
   });
 
 export const payBill = createServerFn({ method: "POST" })

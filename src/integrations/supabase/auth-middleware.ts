@@ -98,12 +98,33 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
       throw new Error('Unauthorized: No user ID found in token');
     }
 
+    const actualUserId = data.user.id;
+    const delegatedTo = (data.user.user_metadata?.delegated_to ?? null) as string | null;
+
+    if (delegatedTo) {
+      const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (SERVICE_KEY) {
+        const adminClient = createClient<Database>(SUPABASE_URL!, SERVICE_KEY, {
+          auth: { persistSession: false, autoRefreshToken: false },
+        });
+        const { data: invite } = await adminClient
+          .from("household_invites")
+          .select("id")
+          .eq("member_id", actualUserId)
+          .eq("owner_id", delegatedTo)
+          .not("accepted_at", "is", null)
+          .maybeSingle();
+
+        if (invite) {
+          return next({
+            context: { supabase: adminClient, userId: delegatedTo, actualUserId, claims: data.user },
+          });
+        }
+      }
+    }
+
     return next({
-      context: {
-        supabase,
-        userId: data.user.id,
-        claims: data.user,
-      },
+      context: { supabase, userId: actualUserId, actualUserId, claims: data.user },
     });
   },
 );

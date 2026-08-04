@@ -14,6 +14,8 @@ import { InvestmentManager } from "@/components/dashboard/InvestmentManager";
 import { BillsSection } from "@/components/dashboard/BillsSection";
 import { NotificationSettings } from "@/components/dashboard/NotificationSettings";
 import { AgendaView } from "@/components/dashboard/AgendaView";
+import { HouseholdSettings } from "@/components/dashboard/HouseholdSettings";
+import { UserAvatar } from "@/components/dashboard/UserAvatar";
 
 import {
   getCategories,
@@ -44,6 +46,7 @@ import {
   deleteInstallmentGroup,
   payBill,
   unpayBill,
+  getHouseholdInfo,
 } from "@/lib/budget.functions";
 import { supabase } from "@/integrations/supabase/client";
 import type { Transaction, TransactionType, ExpenseKind, InvestmentType } from "@/lib/budget.types";
@@ -103,6 +106,7 @@ function DashboardPage() {
   const contributionsQuery = useQuery({ queryKey: ["contributions", currentDate.year, currentDate.month], queryFn: () => getContributions({ data: currentDate }) });
   const invSummaryQuery = useQuery({ queryKey: ["invSummary", currentDate.year, currentDate.month], queryFn: () => getInvestmentSummary({ data: currentDate }) });
   const billsQuery = useQuery({ queryKey: ["bills", currentDate.year, currentDate.month], queryFn: () => getBills({ data: currentDate }) });
+  const householdQuery = useQuery({ queryKey: ["household"], queryFn: () => getHouseholdInfo({ data: undefined }), staleTime: 60_000 });
 
   const isPending =
     categoriesQuery.isPending || transactionsQuery.isPending || summaryQuery.isPending ||
@@ -248,6 +252,13 @@ function DashboardPage() {
   const contributions = contributionsQuery.data ?? [];
   const invSummary = invSummaryQuery.data ?? { totalPatrimony: 0, monthContributions: 0, savingsRate: 0, allocation: [] };
   const bills = billsQuery.data ?? [];
+  const household = householdQuery.data ?? null;
+
+  const memberMap = household
+    ? Object.fromEntries(
+        [household.me, ...(household.partner ? [household.partner] : [])].map((m) => [m.userId, m])
+      )
+    : {};
 
   const pendingBills = bills.filter((b) => !b.paid_transaction_id);
   const recentTx = [...transactions].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
@@ -428,27 +439,34 @@ function DashboardPage() {
                   </div>
                 ) : (
                   <div className="bg-card rounded-2xl border border-border overflow-hidden card-shadow divide-y divide-border/60">
-                    {recentTx.map((t) => (
-                      <div key={t.id} className="flex items-center gap-3 px-4 py-3.5 hover:bg-surface/60 transition-colors">
-                        <div className={`size-8 rounded-xl flex items-center justify-center shrink-0 ${t.type === "income" ? "bg-income/10" : "bg-expense/8"}`}>
-                          {t.type === "income"
-                            ? <ArrowUpRight className="size-3.5 text-income" />
-                            : <ArrowDownRight className="size-3.5 text-expense" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-semibold truncate">{t.description}</div>
-                          <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                            {t.category?.icon && <span className="opacity-50">{t.category.icon}</span>}
-                            <span>{t.category?.name ?? "Sem categoria"}</span>
-                            <span className="opacity-40">·</span>
-                            <span>{fmtDate(t.date)}</span>
+                    {recentTx.map((t) => {
+                      const creator = t.created_by ? memberMap[t.created_by] : null;
+                      const showAvatar = !!household?.partner && !!creator;
+                      return (
+                        <div key={t.id} className="flex items-center gap-3 px-4 py-3.5 hover:bg-surface/60 transition-colors">
+                          <div className={`size-8 rounded-xl flex items-center justify-center shrink-0 ${t.type === "income" ? "bg-income/10" : "bg-expense/8"}`}>
+                            {t.type === "income"
+                              ? <ArrowUpRight className="size-3.5 text-income" />
+                              : <ArrowDownRight className="size-3.5 text-expense" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-semibold truncate">{t.description}</div>
+                            <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                              {t.category?.icon && <span className="opacity-50">{t.category.icon}</span>}
+                              <span>{t.category?.name ?? "Sem categoria"}</span>
+                              <span className="opacity-40">·</span>
+                              <span>{fmtDate(t.date)}</span>
+                            </div>
+                          </div>
+                          {showAvatar && creator && (
+                            <UserAvatar initials={creator.initials} color={creator.color} size="xs" title={creator.displayName} />
+                          )}
+                          <div className={`text-sm font-bold tabular-nums ${t.type === "income" ? "text-income" : "text-expense"}`}>
+                            {t.type === "income" ? "+" : "−"}{fmt(t.amount)}
                           </div>
                         </div>
-                        <div className={`text-sm font-bold tabular-nums ${t.type === "income" ? "text-income" : "text-expense"}`}>
-                          {t.type === "income" ? "+" : "−"}{fmt(t.amount)}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -524,6 +542,16 @@ function DashboardPage() {
                   onDelete={handleDeleteCategory}
                 />
               </div>
+
+              {/* Partilha */}
+              {household && (
+                <div className="bg-card rounded-2xl border border-border p-5 card-shadow">
+                  <HouseholdSettings
+                    info={household}
+                    onRefresh={() => queryClient.invalidateQueries({ queryKey: ["household"] })}
+                  />
+                </div>
+              )}
 
               {/* Notificações */}
               <div className="bg-card rounded-2xl border border-border p-5 card-shadow">

@@ -48,7 +48,13 @@ function AuthPage() {
             throw error;
           }
         } else {
-          navigate({ to: "/" });
+          const pendingToken = localStorage.getItem("nexo-pending-invite");
+          if (pendingToken) {
+            localStorage.removeItem("nexo-pending-invite");
+            navigate({ to: "/join", search: { token: pendingToken } });
+          } else {
+            navigate({ to: "/" });
+          }
         }
       }
     } catch (err) {

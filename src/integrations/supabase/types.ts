@@ -19,6 +19,7 @@ export type Database = {
           amount: number
           category_id: string | null
           created_at: string | null
+          created_by: string | null
           due_day: number
           id: string
           is_active: boolean
@@ -35,6 +36,7 @@ export type Database = {
           amount: number
           category_id?: string | null
           created_at?: string | null
+          created_by?: string | null
           due_day: number
           id?: string
           is_active?: boolean
@@ -51,6 +53,7 @@ export type Database = {
           amount?: number
           category_id?: string | null
           created_at?: string | null
+          created_by?: string | null
           due_day?: number
           id?: string
           is_active?: boolean
@@ -217,6 +220,7 @@ export type Database = {
           bill_id: string | null
           category_id: string | null
           created_at: string
+          created_by: string | null
           date: string
           description: string
           id: string
@@ -228,6 +232,7 @@ export type Database = {
           bill_id?: string | null
           category_id?: string | null
           created_at?: string
+          created_by?: string | null
           date: string
           description: string
           id?: string
@@ -239,6 +244,7 @@ export type Database = {
           bill_id?: string | null
           category_id?: string | null
           created_at?: string
+          created_by?: string | null
           date?: string
           description?: string
           id?: string
@@ -265,6 +271,8 @@ export type Database = {
       user_settings: {
         Row: {
           currency: string | null
+          display_color: string | null
+          display_name: string | null
           notify_days_before: number | null
           notify_push: boolean | null
           notify_whatsapp: boolean | null
@@ -274,6 +282,8 @@ export type Database = {
         }
         Insert: {
           currency?: string | null
+          display_color?: string | null
+          display_name?: string | null
           notify_days_before?: number | null
           notify_push?: boolean | null
           notify_whatsapp?: boolean | null
@@ -283,12 +293,44 @@ export type Database = {
         }
         Update: {
           currency?: string | null
+          display_color?: string | null
+          display_name?: string | null
           notify_days_before?: number | null
           notify_push?: boolean | null
           notify_whatsapp?: boolean | null
           phone?: string | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      household_invites: {
+        Row: {
+          id: string
+          token: string
+          owner_id: string
+          member_id: string | null
+          accepted_at: string | null
+          expires_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          token?: string
+          owner_id: string
+          member_id?: string | null
+          accepted_at?: string | null
+          expires_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          token?: string
+          owner_id?: string
+          member_id?: string | null
+          accepted_at?: string | null
+          expires_at?: string
+          created_at?: string
         }
         Relationships: []
       }
