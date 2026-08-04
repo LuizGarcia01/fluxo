@@ -57,6 +57,9 @@ function JoinPage() {
     setPhase("accepting");
     try {
       await acceptHouseholdInvite({ data: { token } });
+      // Force session refresh so the new delegated_to is in the access token
+      // Without this, the old cached JWT would be used and delegation would fail
+      await supabase.auth.refreshSession();
       setPhase("done");
       setTimeout(() => navigate({ to: "/" }), 2000);
     } catch (e: unknown) {
