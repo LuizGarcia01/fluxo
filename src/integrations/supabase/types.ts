@@ -277,6 +277,7 @@ export type Database = {
           notify_push: boolean | null
           notify_whatsapp: boolean | null
           phone: string | null
+          trial_expires_at: string | null
           updated_at: string | null
           user_id: string
         }
@@ -288,6 +289,7 @@ export type Database = {
           notify_push?: boolean | null
           notify_whatsapp?: boolean | null
           phone?: string | null
+          trial_expires_at?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -299,6 +301,7 @@ export type Database = {
           notify_push?: boolean | null
           notify_whatsapp?: boolean | null
           phone?: string | null
+          trial_expires_at?: string | null
           updated_at?: string | null
           user_id?: string
         }

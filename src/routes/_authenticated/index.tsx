@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouteContext } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Home, CalendarDays, TrendingUp, Settings, Moon, Sun, LogOut, Plus, ChevronLeft, ChevronRight, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Home, CalendarDays, TrendingUp, Settings, Moon, Sun, LogOut, Plus, ChevronLeft, ChevronRight, ArrowUpRight, ArrowDownRight, Clock } from "lucide-react";
 
 import { NexoLogo, NexoMark } from "@/components/dashboard/NexoLogo";
 import { CurrencyProvider, useCurrency } from "@/contexts/CurrencyContext";
@@ -65,6 +65,7 @@ const months = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","A
 
 function DashboardPage() {
   const queryClient = useQueryClient();
+  const { daysLeft } = useRouteContext({ from: "/_authenticated" });
   const now = new Date();
   const [currentDate, setCurrentDate] = useState({ year: now.getFullYear(), month: now.getMonth() + 1 });
   const [activeTab, setActiveTab] = useState<Tab>("inicio");
@@ -357,6 +358,16 @@ function DashboardPage() {
         <NexoLogo size={30} />
         <MonthNav />
       </div>
+
+      {/* ── Trial banner ────────────────────────────────────── */}
+      {daysLeft !== null && daysLeft <= 7 && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 flex items-center justify-center gap-2 text-[12px] font-semibold text-amber-600 dark:text-amber-400 shrink-0">
+          <Clock className="size-3.5 shrink-0" />
+          {daysLeft <= 0
+            ? "O teu período de teste terminou."
+            : `Período de teste: ${daysLeft} dia${daysLeft === 1 ? "" : "s"} restante${daysLeft === 1 ? "" : "s"}.`}
+        </div>
+      )}
 
       {/* ── Tab content ─────────────────────────────────────── */}
       <main className="flex-1 overflow-y-auto pb-[76px] md:pb-6">
