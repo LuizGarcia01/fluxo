@@ -360,12 +360,16 @@ function DashboardPage() {
       </div>
 
       {/* ── Trial banner ────────────────────────────────────── */}
-      {daysLeft !== null && daysLeft <= 7 && (
-        <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 flex items-center justify-center gap-2 text-[12px] font-semibold text-amber-600 dark:text-amber-400 shrink-0">
+      {daysLeft !== null && (
+        <div className={`border-b px-4 py-2 flex items-center justify-center gap-2 text-[12px] font-semibold shrink-0 ${
+          daysLeft <= 3
+            ? "bg-expense/10 border-expense/20 text-expense dark:text-red-400"
+            : daysLeft <= 7
+            ? "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400"
+            : "bg-brand/10 border-brand/20 text-brand dark:text-teal-400"
+        }`}>
           <Clock className="size-3.5 shrink-0" />
-          {daysLeft <= 0
-            ? "O teu período de teste terminou."
-            : `Período de teste: ${daysLeft} dia${daysLeft === 1 ? "" : "s"} restante${daysLeft === 1 ? "" : "s"}.`}
+          {`Versão de demonstração · ${daysLeft} dia${daysLeft === 1 ? "" : "s"} restante${daysLeft === 1 ? "" : "s"}`}
         </div>
       )}
 
