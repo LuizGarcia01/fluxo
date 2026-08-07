@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { NexoMark } from "@/components/dashboard/NexoLogo";
-import { Clock } from "lucide-react";
+import { Clock, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/trial-expired")({
   ssr: false,
@@ -8,6 +8,8 @@ export const Route = createFileRoute("/trial-expired")({
 });
 
 function TrialExpiredPage() {
+  const router = useRouter();
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-background relative overflow-hidden">
 
@@ -65,16 +67,25 @@ function TrialExpiredPage() {
         </div>
 
         {/* CTA */}
-        <a
-          href="mailto:silvaluizgarcia7@gmail.com"
-          className="w-full py-[14px] rounded-2xl text-[15px] font-bold text-white text-center transition-opacity hover:opacity-90 active:opacity-80"
-          style={{
-            background: "linear-gradient(135deg, #52b8ac 0%, #6ec6ba 100%)",
-            boxShadow: "0 8px 28px -4px rgba(110,198,186,0.45)",
-          }}
-        >
-          Pedir acesso
-        </a>
+        <div className="w-full space-y-3">
+          <a
+            href="mailto:silvaluizgarcia7@gmail.com"
+            className="block w-full py-[14px] rounded-2xl text-[15px] font-bold text-white text-center transition-opacity hover:opacity-90 active:opacity-80"
+            style={{
+              background: "linear-gradient(135deg, #52b8ac 0%, #6ec6ba 100%)",
+              boxShadow: "0 8px 28px -4px rgba(110,198,186,0.45)",
+            }}
+          >
+            Pedir acesso
+          </a>
+          <button
+            onClick={() => router.navigate({ to: "/" })}
+            className="w-full py-3 rounded-2xl text-[14px] font-semibold text-muted-foreground border border-border bg-card hover:bg-surface transition-colors flex items-center justify-center gap-2"
+          >
+            <RefreshCw className="size-3.5" />
+            Já tenho acesso — entrar
+          </button>
+        </div>
 
         {/* Footer */}
         <p className="text-[11px]" style={{ color: "var(--color-muted-foreground)", opacity: 0.5 }}>
