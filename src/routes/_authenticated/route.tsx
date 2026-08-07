@@ -19,12 +19,19 @@ export const Route = createFileRoute("/_authenticated")({
 
     // null trial_expires_at = permanent access (no expiry)
     let trialExpiresAt: Date | null = null;
-    if (settings?.trial_expires_at) {
-      trialExpiresAt = new Date(settings.trial_expires_at);
-    } else if (!settings) {
-      // No settings row yet — fall back to account creation + TRIAL_DAYS
+    if (settings) {
+      if (settings.trial_expires_at) {
+        trialExpiresAt = new Date(settings.trial_expires_at);
+      }
+      // settings exists but trial_expires_at is null → permanent access, trialExpiresAt stays null
+    } else {
+      // No row yet (user registered before DB trigger) — create it now
       const createdAt = new Date(user.created_at ?? Date.now());
       trialExpiresAt = new Date(createdAt.getTime() + TRIAL_DAYS * 86400000);
+      await supabase.from("user_settings").upsert(
+        { user_id: user.id, trial_expires_at: trialExpiresAt.toISOString() },
+        { onConflict: "user_id", ignoreDuplicates: true },
+      );
     }
 
     if (trialExpiresAt && trialExpiresAt < new Date()) {
