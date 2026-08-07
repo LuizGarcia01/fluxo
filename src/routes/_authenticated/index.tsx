@@ -564,13 +564,14 @@ function DashboardPage() {
                   <HouseholdSettings
                     info={household}
                     onRefresh={() => queryClient.invalidateQueries({ queryKey: ["household"] })}
+                    isDemo={daysLeft !== null}
                   />
                 </div>
               )}
 
               {/* Notificações */}
               <div className="bg-card rounded-2xl border border-border p-5 card-shadow">
-                <NotificationSettings />
+                <NotificationSettings isDemo={daysLeft !== null} />
               </div>
 
               {/* Account */}

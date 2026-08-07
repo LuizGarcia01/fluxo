@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Users, Link2, Copy, Check, LogOut, UserMinus } from "lucide-react";
 import { toast } from "sonner";
 import { UserAvatar } from "./UserAvatar";
+import { DemoLock } from "./DemoLock";
 import type { HouseholdInfo } from "@/lib/budget.types";
 import {
   createHouseholdInvite,
@@ -11,9 +12,10 @@ import {
 interface Props {
   info: HouseholdInfo;
   onRefresh: () => void;
+  isDemo?: boolean;
 }
 
-export function HouseholdSettings({ info, onRefresh }: Props) {
+export function HouseholdSettings({ info, onRefresh, isDemo }: Props) {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [inviteToken, setInviteToken] = useState<string | null>(info.pendingInvite?.token ?? null);
@@ -58,13 +60,8 @@ export function HouseholdSettings({ info, onRefresh }: Props) {
     }
   }
 
-  return (
+  const content = (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 mb-1">
-        <Users className="size-4 text-muted-foreground" />
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Partilha</p>
-      </div>
-
       {/* Has partner */}
       {info.partner && (
         <div className="bg-surface rounded-2xl border border-border p-4 space-y-3">
@@ -132,6 +129,16 @@ export function HouseholdSettings({ info, onRefresh }: Props) {
           )}
         </div>
       )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 mb-1">
+        <Users className="size-4 text-muted-foreground" />
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Partilha</p>
+      </div>
+      {isDemo ? <DemoLock>{content}</DemoLock> : content}
     </div>
   );
 }

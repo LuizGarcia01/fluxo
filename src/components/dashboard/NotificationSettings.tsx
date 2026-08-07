@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { CURRENCIES, type CurrencyCode, useCurrency } from "@/contexts/CurrencyContext";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { UserAvatar } from "./UserAvatar";
+import { DemoLock } from "./DemoLock";
 
 const PRESET_COLORS = ["#6ec6ba", "#818cf8", "#f59e0b", "#f472b6", "#34d399", "#60a5fa"];
 
@@ -29,7 +30,7 @@ const DEFAULT: Settings = {
   display_color: "#6ec6ba",
 };
 
-export function NotificationSettings() {
+export function NotificationSettings({ isDemo }: { isDemo?: boolean }) {
   const [settings, setSettings] = useState<Settings>(DEFAULT);
   const [pushStatus, setPushStatus] = useState<"granted" | "denied" | "default" | "unsupported">("default");
   const [loading, setLoading] = useState(true);
@@ -123,100 +124,148 @@ export function NotificationSettings() {
         <p className="text-xs text-muted-foreground">Recebe alertas quando uma conta está prestes a vencer</p>
       </div>
 
-      {/* Dias antes */}
-      <div className="bg-surface rounded-2xl border border-border p-4 space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Quando alertar</p>
-        <div className="flex gap-2">
-          {[1, 2, 3].map((d) => (
-            <button
-              key={d}
-              onClick={() => setSettings((s) => ({ ...s, notify_days_before: d }))}
-              className={`flex-1 rounded-xl py-2 text-sm font-semibold transition-colors ${
-                settings.notify_days_before === d
-                  ? "bg-brand text-white shadow-sm"
-                  : "bg-card border border-border text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {d} dia{d > 1 ? "s" : ""} antes
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Push */}
-      <div className="bg-surface rounded-2xl border border-border p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`size-9 rounded-xl flex items-center justify-center ${settings.notify_push ? "bg-brand/10" : "bg-muted/40"}`}>
-              {settings.notify_push
-                ? <Bell className="size-4 text-brand" />
-                : <BellOff className="size-4 text-muted-foreground" />}
+      {/* Notificações — bloqueadas em demo */}
+      {isDemo ? (
+        <DemoLock>
+          <div className="space-y-3">
+            <div className="bg-surface rounded-2xl border border-border p-4 space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Quando alertar</p>
+              <div className="flex gap-2">
+                {[1, 2, 3].map((d) => (
+                  <button key={d} className="flex-1 rounded-xl py-2 text-sm font-semibold bg-card border border-border text-muted-foreground">
+                    {d} dia{d > 1 ? "s" : ""} antes
+                  </button>
+                ))}
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-semibold">Notificação Push</p>
-              <p className="text-xs text-muted-foreground">
-                {pushStatus === "denied"
-                  ? "Bloqueado pelo browser — ativa nas definições"
-                  : pushStatus === "unsupported"
-                  ? "Não suportado neste browser"
-                  : "Aparece no telemóvel e computador"}
-              </p>
+            <div className="bg-surface rounded-2xl border border-border p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="size-9 rounded-xl flex items-center justify-center bg-muted/40">
+                    <BellOff className="size-4 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">Notificação Push</p>
+                    <p className="text-xs text-muted-foreground">Aparece no telemóvel e computador</p>
+                  </div>
+                </div>
+                <div className="relative w-11 h-6 rounded-full bg-border" />
+              </div>
             </div>
-          </div>
-          <button
-            onClick={() => handleTogglePush(!settings.notify_push)}
-            disabled={pushStatus === "denied" || pushStatus === "unsupported"}
-            className={`relative w-11 h-6 rounded-full transition-colors disabled:opacity-40 ${
-              settings.notify_push ? "bg-brand" : "bg-border"
-            }`}
-          >
-            <span className={`absolute top-0.5 left-0.5 size-5 bg-white rounded-full shadow transition-transform ${
-              settings.notify_push ? "translate-x-5" : "translate-x-0"
-            }`} />
-          </button>
-        </div>
-      </div>
-
-      {/* WhatsApp */}
-      <div className="bg-surface rounded-2xl border border-border p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`size-9 rounded-xl flex items-center justify-center ${settings.notify_whatsapp ? "bg-[#25D366]/10" : "bg-muted/40"}`}>
-              <MessageCircle className={`size-4 ${settings.notify_whatsapp ? "text-[#25D366]" : "text-muted-foreground"}`} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold">WhatsApp</p>
-              <p className="text-xs text-muted-foreground">Mensagem no teu WhatsApp pessoal</p>
+            <div className="bg-surface rounded-2xl border border-border p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="size-9 rounded-xl flex items-center justify-center bg-muted/40">
+                    <MessageCircle className="size-4 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">WhatsApp</p>
+                    <p className="text-xs text-muted-foreground">Mensagem no teu WhatsApp pessoal</p>
+                  </div>
+                </div>
+                <div className="relative w-11 h-6 rounded-full bg-border" />
+              </div>
             </div>
           </div>
-          <button
-            onClick={() => setSettings((s) => ({ ...s, notify_whatsapp: !s.notify_whatsapp }))}
-            className={`relative w-11 h-6 rounded-full transition-colors ${
-              settings.notify_whatsapp ? "bg-[#25D366]" : "bg-border"
-            }`}
-          >
-            <span className={`absolute top-0.5 left-0.5 size-5 bg-white rounded-full shadow transition-transform ${
-              settings.notify_whatsapp ? "translate-x-5" : "translate-x-0"
-            }`} />
-          </button>
-        </div>
-
-        {settings.notify_whatsapp && (
-          <div className="space-y-1.5 pt-1">
-            <label className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-              <Phone className="size-3" /> Número de telemóvel
-            </label>
-            <input
-              type="tel"
-              value={settings.phone}
-              onChange={(e) => setSettings((s) => ({ ...s, phone: e.target.value }))}
-              placeholder="+351 912 345 678"
-              className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm outline-none focus:border-brand/50 focus:ring-2 focus:ring-brand/10 transition-colors"
-            />
-            <p className="text-[11px] text-muted-foreground">Inclui o código do país (ex: +351 para Portugal)</p>
+        </DemoLock>
+      ) : (
+        <>
+          {/* Dias antes */}
+          <div className="bg-surface rounded-2xl border border-border p-4 space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Quando alertar</p>
+            <div className="flex gap-2">
+              {[1, 2, 3].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setSettings((s) => ({ ...s, notify_days_before: d }))}
+                  className={`flex-1 rounded-xl py-2 text-sm font-semibold transition-colors ${
+                    settings.notify_days_before === d
+                      ? "bg-brand text-white shadow-sm"
+                      : "bg-card border border-border text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {d} dia{d > 1 ? "s" : ""} antes
+                </button>
+              ))}
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* Push */}
+          <div className="bg-surface rounded-2xl border border-border p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`size-9 rounded-xl flex items-center justify-center ${settings.notify_push ? "bg-brand/10" : "bg-muted/40"}`}>
+                  {settings.notify_push
+                    ? <Bell className="size-4 text-brand" />
+                    : <BellOff className="size-4 text-muted-foreground" />}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">Notificação Push</p>
+                  <p className="text-xs text-muted-foreground">
+                    {pushStatus === "denied"
+                      ? "Bloqueado pelo browser — ativa nas definições"
+                      : pushStatus === "unsupported"
+                      ? "Não suportado neste browser"
+                      : "Aparece no telemóvel e computador"}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => handleTogglePush(!settings.notify_push)}
+                disabled={pushStatus === "denied" || pushStatus === "unsupported"}
+                className={`relative w-11 h-6 rounded-full transition-colors disabled:opacity-40 ${
+                  settings.notify_push ? "bg-brand" : "bg-border"
+                }`}
+              >
+                <span className={`absolute top-0.5 left-0.5 size-5 bg-white rounded-full shadow transition-transform ${
+                  settings.notify_push ? "translate-x-5" : "translate-x-0"
+                }`} />
+              </button>
+            </div>
+          </div>
+
+          {/* WhatsApp */}
+          <div className="bg-surface rounded-2xl border border-border p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`size-9 rounded-xl flex items-center justify-center ${settings.notify_whatsapp ? "bg-[#25D366]/10" : "bg-muted/40"}`}>
+                  <MessageCircle className={`size-4 ${settings.notify_whatsapp ? "text-[#25D366]" : "text-muted-foreground"}`} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">WhatsApp</p>
+                  <p className="text-xs text-muted-foreground">Mensagem no teu WhatsApp pessoal</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSettings((s) => ({ ...s, notify_whatsapp: !s.notify_whatsapp }))}
+                className={`relative w-11 h-6 rounded-full transition-colors ${
+                  settings.notify_whatsapp ? "bg-[#25D366]" : "bg-border"
+                }`}
+              >
+                <span className={`absolute top-0.5 left-0.5 size-5 bg-white rounded-full shadow transition-transform ${
+                  settings.notify_whatsapp ? "translate-x-5" : "translate-x-0"
+                }`} />
+              </button>
+            </div>
+
+            {settings.notify_whatsapp && (
+              <div className="space-y-1.5 pt-1">
+                <label className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                  <Phone className="size-3" /> Número de telemóvel
+                </label>
+                <input
+                  type="tel"
+                  value={settings.phone}
+                  onChange={(e) => setSettings((s) => ({ ...s, phone: e.target.value }))}
+                  placeholder="+351 912 345 678"
+                  className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm outline-none focus:border-brand/50 focus:ring-2 focus:ring-brand/10 transition-colors"
+                />
+                <p className="text-[11px] text-muted-foreground">Inclui o código do país (ex: +351 para Portugal)</p>
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Moeda */}
       <div className="bg-surface rounded-2xl border border-border p-4 space-y-3">
